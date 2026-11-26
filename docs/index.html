@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <style>
 :root {
   color-scheme: light;
@@ -31,6 +31,7 @@
   --accent-soft: #e8f1fc;
   --series-1: #257de0;
   --series-2: #f47230;
+  --series-3: #00b894;
   --track: #e6eefa;
   --critical: #c8312f;
   --critical-soft: #fdeceb;
@@ -56,6 +57,7 @@
     --accent-soft: #1a2a3f;
     --series-1: #338ced;
     --series-2: #e76624;
+    --series-3: #00a888;
     --track: #1f3048;
     --critical: #ef6b6b;
     --critical-soft: #3a1d1d;
@@ -81,6 +83,7 @@
   --accent-soft: #1a2a3f;
   --series-1: #338ced;
   --series-2: #e76624;
+  --series-3: #00a888;
   --track: #1f3048;
   --critical: #ef6b6b;
   --critical-soft: #3a1d1d;
@@ -201,7 +204,7 @@ svg .zone { fill: var(--series-2); opacity: .06; }
 #tip b { display: block; margin-bottom: 3px; line-height: 1.3; }
 #tip .muted { color: var(--text-secondary); }
 
-#map { height: 440px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); }
+#map { height: 480px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface-1); color: var(--text-primary); }
 .leaflet-popup-content { font: 13px/1.45 Inter, system-ui, sans-serif; }
 .leaflet-container a.leaflet-popup-close-button { color: var(--text-secondary); }
@@ -236,6 +239,28 @@ tr.detail dd { margin: 0; overflow-wrap: anywhere; }
 .table-foot { display: flex; justify-content: center; padding: 14px; }
 .more { font: inherit; font-size: 14px; font-weight: 500; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); border-radius: 999px; padding: 8px 18px; cursor: pointer; }
 .empty { color: var(--text-secondary); padding: 32px 16px; text-align: center; }
+
+/* pago x construído */
+.groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.group { text-align: left; font: inherit; color: var(--text-primary); background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.group:hover { border-color: var(--text-tertiary); }
+.group[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.group .g-n { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.group .g-t { font-weight: 600; font-size: 14px; }
+.group .g-d { font-size: 12.5px; color: var(--text-secondary); }
+.cmp-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; }
+.cmp-row { padding: 14px 0; border-top: 1px solid var(--border); cursor: pointer; min-width: 0; }
+.cmp-row:hover .cmp-name { color: var(--accent); }
+.cmp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.cmp-name { font-weight: 500; font-size: 14px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cmp-line { display: grid; grid-template-columns: 78px 1fr 56px; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-secondary); margin: 4px 0; }
+.cmp-track { height: 10px; background: var(--grid); border-radius: 0 4px 4px 0; position: relative; }
+.cmp-track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; }
+.cmp-val { text-align: right; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+.cmp-foot { font-size: 12.5px; color: var(--text-secondary); margin-top: 6px; }
+.cmp-foot b { color: var(--text-primary); font-weight: 600; }
+@media (max-width: 900px) { .cmp-list { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .groups { grid-template-columns: 1fr; } .group { flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; } .group .g-d { flex-basis: 100%; } }
 
 /* convênios */
 .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; }
@@ -360,24 +385,22 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
   <section id="dinheiro">
     <div class="section-head">
       <div>
-        <h2>O dinheiro e a obra</h2>
-        <p class="sub">Compare quanto do valor previsto já foi pago com quanto da obra foi construído, e veja onde ficam as obras com localização precisa.</p>
+        <h2>O dinheiro acompanha a obra?</h2>
+        <p class="sub" id="cmp-sub">Para cada obra com dados de pagamento, comparamos quanto do valor previsto já foi pago com quanto da obra já foi construído.</p>
       </div>
     </div>
-    <div class="grid two">
-      <div class="card">
-        <h3>Pago × executado</h3>
-        <p class="sub">Cada ponto é uma obra com dados de pagamento. Na área sombreada, pagou-se proporcionalmente mais do que foi construído.</p>
-        <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
-        <div class="chart" id="c-scatter"></div>
-        <p class="fine" id="scatter-note"></p>
-      </div>
-      <div class="card">
-        <h3>Mapa</h3>
-        <p class="sub" id="map-sub">Obras com localização precisa</p>
-        <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
-        <div id="map" role="region" aria-label="Mapa das obras"></div>
-      </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="groups" role="group" aria-label="Filtrar obras pela comparação" id="cmp-groups"></div>
+      <div class="legend"><span><i class="sw" style="background:var(--series-1)"></i>Construído (execução física)</span><span><i class="sw" style="background:var(--series-3)"></i>Pago (% do valor previsto)</span></div>
+      <div class="cmp-list" id="cmp-list"></div>
+      <div class="table-foot" id="cmp-foot" hidden><button type="button" class="more" id="cmp-more">Mostrar todas</button></div>
+      <p class="fine" id="cmp-note"></p>
+    </div>
+    <div class="card">
+      <h3>Mapa das obras</h3>
+      <p class="sub" id="map-sub">Obras com localização precisa</p>
+      <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
+      <div id="map" role="region" aria-label="Mapa das obras"></div>
     </div>
   </section>
 
@@ -481,7 +504,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
 </footer>
 <div id="tip" role="tooltip"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
 <script>
 const SITUACOES = ["Em execução", "Paralisada", "Inacabada", "Cadastrada", "Concluída", "Cancelada"];
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -639,7 +662,8 @@ function renderFeatures() {
   });
 }
 function focusRow(id) {
-  tab = "alerta"; setTabs(); sortK = "previsto"; sortDir = -1; shown = 40; renderTable();
+  const o = DATA.find(x => x.id_projeto === id);
+  tab = o && o.alerta ? "alerta" : "todas"; setTabs(); sortK = "previsto"; sortDir = -1; shown = 2000; renderTable();
   const tr = document.querySelector(`tr.row[data-id="${CSS.escape(id)}"]`);
   if (tr) { tr.click(); tr.scrollIntoView({ block: "center" }); tr.focus({ preventScroll: true }); }
 }
@@ -692,38 +716,56 @@ function renderBars() {
     r => `<span class="muted">${brl.format(r.v)}${r.vAl ? `<br>${brl.format(r.vAl)} com alerta` : ""}<br>${int.format(r.nv)} de ${int.format(r.n)} projetos com valor informado</span>`);
 }
 
-// ---------- dispersão ----------
-function renderScatter() {
-  const el = $("c-scatter");
-  const pts = view.filter(o => o.pct_pago != null && o.pct_fisico != null);
-  const W = Math.max(280, el.clientWidth), H = 310, m = { l: 68, r: 22, t: 12, b: 40 }, YMAX = 200;
-  const pw = W - m.l - m.r, ph = H - m.t - m.b;
-  const x = v => m.l + v / 100 * pw, y = v => m.t + ph - Math.min(v, YMAX) / YMAX * ph;
-  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Dispersão entre percentual pago e percentual executado">`;
-  s += `<path class="zone" d="M${x(0)},${y(0)} L${x(100)},${y(100)} L${x(100)},${y(YMAX)} L${x(0)},${y(YMAX)} Z"/>`;
-  [0, 50, 100, 150, 200].forEach(t => s += `<line class="gridline" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${t}%${t === YMAX ? "+" : ""}</text>`);
-  [0, 25, 50, 75, 100].forEach(t => s += `<text x="${x(t)}" y="${H - m.b + 18}" text-anchor="middle">${t}%</text>`);
-  s += `<text x="${m.l + pw / 2}" y="${H - 4}" text-anchor="middle">execução física</text>`;
-  s += `<text transform="translate(12 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle">% do previsto já pago</text>`;
-  s += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(100)}" y2="${y(100)}" stroke="var(--text-tertiary)" stroke-width="1"/>`;
-  s += `<text x="${x(3)}" y="${y(185)}">pagou mais do que construiu</text>`;
-  s += `<text x="${x(100) - 4}" y="${y(100) + 16}" text-anchor="end">pago = executado</text>`;
-  const ord = [...pts].sort((a, b) => a.alerta - b.alerta);
-  ord.forEach((o, i) => {
-    const cx = x(o.pct_fisico), cy = y(o.pct_pago);
-    s += `<circle cx="${cx}" cy="${cy}" r="5" fill="var(${o.alerta ? "--series-2" : "--series-1"})" stroke="var(--surface-1)" stroke-width="2"/>`;
-    s += `<circle data-i="${i}" cx="${cx}" cy="${cy}" r="11" fill="transparent"/>`;
+// ---------- pago x construído ----------
+const GRUPOS_CMP = [
+  { k: "pagou_mais", t: "Pagou mais do que construiu", d: "pagamento à frente da obra (mais de 10 pontos)" },
+  { k: "equilibrado", t: "Pagamento acompanha a obra", d: "diferença de até 10 pontos" },
+  { k: "construiu_mais", t: "Construiu mais do que pagou", d: "obra à frente do pagamento registrado" },
+];
+let cmpGrupo = null, cmpAll = false;
+function grupoCmp(o) {
+  const d = o.pct_pago - o.pct_fisico;
+  return d > 10 ? "pagou_mais" : d < -10 ? "construiu_mais" : "equilibrado";
+}
+function renderComparison() {
+  const base = view.filter(o => o.pct_pago != null && o.pct_fisico != null);
+  const ok = base.filter(o => o.pct_pago <= 150), estranhos = base.length - ok.length;
+  const cont = Object.fromEntries(GRUPOS_CMP.map(g => [g.k, ok.filter(o => grupoCmp(o) === g.k).length]));
+  $("cmp-groups").innerHTML = GRUPOS_CMP.map(g => `<button type="button" class="group" data-g="${g.k}" aria-pressed="${cmpGrupo === g.k}">
+      <span class="g-n tabular">${int.format(cont[g.k])}</span><span class="g-t">${g.t}</span><span class="g-d">${g.d}</span></button>`).join("");
+  $("cmp-groups").querySelectorAll(".group").forEach(b => b.addEventListener("click", () => {
+    cmpGrupo = cmpGrupo === b.dataset.g ? null : b.dataset.g; cmpAll = false; renderComparison();
+  }));
+  $("cmp-sub").textContent = ok.length
+    ? `Das ${int.format(ok.length)} obras com dados de pagamento e execução, ${int.format(cont.pagou_mais)} pagaram proporcionalmente mais do que construíram. Cada obra mostra duas barras na mesma escala: quanto foi construído e quanto do valor previsto já foi pago.`
+    : "Nenhuma obra com dados de pagamento e execução nesse filtro.";
+  const rows = ok.filter(o => !cmpGrupo || grupoCmp(o) === cmpGrupo)
+    .sort(cmpGrupo
+      ? (a, b) => Math.abs(b.pct_pago - b.pct_fisico) - Math.abs(a.pct_pago - a.pct_fisico) || (b.previsto || 0) - (a.previsto || 0)
+      : (a, b) => (b.previsto || 0) - (a.previsto || 0));
+  const lim = cmpAll ? rows.length : 8;
+  const bar = (lbl, v, cor) => `<div class="cmp-line"><span>${lbl}</span><div class="cmp-track"><i class="${v > 100 ? "over" : ""}" style="width:${Math.max(v > 0 ? 1.5 : 0, Math.min(100, v))}%;background:var(${cor})"></i></div><span class="cmp-val">${pct(v)}</span></div>`;
+  $("cmp-list").innerHTML = rows.slice(0, lim).map(o => {
+    const d = Math.round(o.pct_pago - o.pct_fisico);
+    const frase = !o.pago ? "nenhum pagamento registrado nesta base"
+      : Math.abs(d) <= 10 ? "pagamento e obra caminham juntos"
+      : d > 0 ? `pago <b>${int.format(d)} pontos à frente</b> do construído` : `construído <b>${int.format(-d)} pontos à frente</b> do pago`;
+    return `<div class="cmp-row" tabindex="0" data-id="${esc(o.id_projeto)}">
+      <div class="cmp-head"><span class="cmp-name">${esc(o._nome)}</span>${o.alerta ? pill(o) : ""}</div>
+      ${bar("Construído", o.pct_fisico, "--series-1")}
+      ${bar("Pago", o.pct_pago, "--series-3")}
+      <div class="cmp-foot">${brlC.format(o.pago)} pagos de ${brlC.format(o.previsto)} previstos · ${frase}</div>
+    </div>`;
+  }).join("") || '<p class="empty" style="grid-column:1/-1">Nenhuma obra neste grupo.</p>';
+  $("cmp-list").querySelectorAll(".cmp-row").forEach(el => {
+    const go = () => focusRow(el.dataset.id);
+    el.addEventListener("click", go);
+    el.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
   });
-  if (!pts.length) s += `<text x="${m.l + pw / 2}" y="${m.t + ph / 2}" text-anchor="middle">Nenhuma obra com dados de pagamento nesse filtro</text>`;
-  el.innerHTML = s + "</svg>";
-  el.querySelectorAll("circle[data-i]").forEach(h => {
-    const o = ord[+h.dataset.i];
-    h.addEventListener("mousemove", e => showTip(e, `<b>${esc(o._nome)}</b><span class="muted">${esc(o.situacao)}${o.prazo_vencido ? " · prazo vencido" : ""}<br>Pago: ${brl.format(o.pago)} de ${brl.format(o.previsto)} (${pct(o.pct_pago)})<br>Execução física: ${pct(o.pct_fisico)}</span>`));
-    h.addEventListener("mouseleave", hideTip);
-  });
-  const acima = pts.filter(o => o.pct_pago > YMAX).length;
-  $("scatter-note").textContent = `${int.format(pts.length)} obras com pagamento e execução física informados.` +
-    (acima ? ` ${int.format(acima)} passam de ${YMAX}% e aparecem no topo, provavelmente por valor previsto subdeclarado.` : "");
+  $("cmp-foot").hidden = rows.length <= lim;
+  $("cmp-more").textContent = `Mostrar todas (${int.format(rows.length)})`;
+  $("cmp-note").textContent = (cmpGrupo ? "Ordenadas pela maior diferença entre pago e construído." : "Ordenadas pelo valor previsto. Clique em um dos grupos acima para filtrar.") + " \"Construiu mais do que pagou\" muitas vezes significa só que parte dos pagamentos não está registrada nesta base (por exemplo, repasses por convênio)." +
+    (estranhos ? ` ${int.format(estranhos)} ${estranhos === 1 ? "obra ficou" : "obras ficaram"} de fora por terem pagamento acima de 150% do valor previsto, o que indica valor previsto desatualizado.` : "");
 }
 
 // ---------- mapa ----------
@@ -748,6 +790,7 @@ function renderMap(themeChanged) {
       .bindPopup(`<b>${esc(o._nome)}</b><br>${esc(o.situacao)}${o.prazo_vencido ? " · prazo vencido" : ""}<br>Previsto: ${o.previsto != null ? brl.format(o.previsto) : "–"}<br>Executado: ${pct(o.pct_fisico)}`)
       .addTo(layer);
   });
+  if (pts.length && !map._ajustado) { map.fitBounds(L.latLngBounds(pts.map(o => [o.lat, o.lon])).pad(0.08), { maxZoom: 13 }); map._ajustado = true; }
   $("map-sub").textContent = `${int.format(pts.length)} de ${int.format(view.length)} obras têm localização precisa. As demais usam um ponto genérico e ficam fora do mapa.`;
 }
 
@@ -918,7 +961,7 @@ function setupConvenios(cv) {
   if (A) $("lede").insertAdjacentHTML("beforeend", ` Nos convênios em andamento com a Prefeitura, a União acordou <b>${brlC.format(A)}</b>, mas repassou só <b>${pct(P / A * 100)}</b> até agora.`);
 }
 
-function render() { renderTiles(); renderFeatures(); renderBars(); renderScatter(); renderMap(); renderTable(); renderConvenios(); }
+function render() { renderTiles(); renderFeatures(); renderBars(); renderComparison(); renderMap(); renderTable(); renderConvenios(); }
 
 // ---------- início ----------
 Promise.all([
@@ -945,7 +988,8 @@ Promise.all([
     renderTable();
   }));
   $("more").addEventListener("click", () => { shown += 40; renderTable(); });
-  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { renderBars(); renderScatter(); renderConvenios(); }, 150); });
+  $("cmp-more").addEventListener("click", () => { cmpAll = true; renderComparison(); });
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { renderBars(); renderConvenios(); if (map) map.invalidateSize(); }, 150); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => renderMap(true));
   applyFilters();
   setupConvenios(cv);
