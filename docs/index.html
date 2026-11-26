@@ -4,250 +4,427 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Obras Federais em Teresina</title>
-<meta name="description" content="Painel de obras com recursos federais em Teresina (PI): situação, execução física e quanto já foi pago. Dados abertos do Obrasgov.br.">
+<meta name="description" content="Quais obras com dinheiro federal estão paradas ou atrasadas em Teresina (PI), quanto já foi pago e quanto foi construído. Dados abertos do Obrasgov.br.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Obras federais em Teresina: o que está parado ou atrasado">
+<meta property="og:description" content="Painel com dados abertos do Obrasgov.br: situação, execução física e pagamentos de 670 obras com recursos federais na capital do Piauí.">
+<meta property="og:image" content="https://santosmiqueias.github.io/obras-teresina/og.png">
+<meta property="og:url" content="https://santosmiqueias.github.io/obras-teresina/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b64be'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1' fill='%23fff'/%3E%3Crect x='14' y='11' width='4' height='14' rx='1' fill='%23fff'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1' fill='%23f47230'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root {
   color-scheme: light;
-  --bg: #f6f6f4;
+  --bg: #f5f4f0;
   --surface-1: #ffffff;
-  --border: #e3e3e0;
-  --grid: #ececea;
-  --text-primary: #191919;
-  --text-secondary: #666666;
+  --surface-2: #faf9f6;
+  --border: #e4e2dc;
+  --grid: #eceae5;
+  --text-primary: #17181a;
+  --text-secondary: #62646a;
+  --text-tertiary: #8b8d92;
   --accent: #1b64be;
+  --accent-soft: #e8f1fc;
   --series-1: #257de0;
   --series-2: #f47230;
-  --critical: #dc3c3d;
-  --warning-ink: #8a5a00;
-  --chip: #f0f0ee;
+  --track: #e6eefa;
+  --critical: #c8312f;
+  --critical-soft: #fdeceb;
+  --warning-ink: #8a5300;
+  --warning-soft: #fff4dc;
+  --hero-bg: #13233a;
+  --hero-text: #f3f5f8;
+  --hero-muted: #a9b6c8;
+  --shadow: 0 1px 2px rgba(20, 20, 20, .04), 0 2px 8px rgba(20, 20, 20, .04);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #111111;
-    --surface-1: #191919;
-    --border: #2e2e2e;
-    --grid: #2a2a2a;
-    --text-primary: #efefef;
-    --text-secondary: #9c9c9c;
+    --bg: #0f1012;
+    --surface-1: #18191c;
+    --surface-2: #1d1e22;
+    --border: #2c2d32;
+    --grid: #26272b;
+    --text-primary: #eeeff1;
+    --text-secondary: #a1a3a9;
+    --text-tertiary: #75777d;
     --accent: #6aabf1;
+    --accent-soft: #1a2a3f;
     --series-1: #338ced;
     --series-2: #e76624;
-    --critical: #eb6263;
+    --track: #1f3048;
+    --critical: #ef6b6b;
+    --critical-soft: #3a1d1d;
     --warning-ink: #f2c25b;
-    --chip: #242424;
+    --warning-soft: #352a12;
+    --hero-bg: #0b1626;
+    --hero-text: #eef2f7;
+    --hero-muted: #93a3b8;
+    --shadow: none;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #111111;
-  --surface-1: #191919;
-  --border: #2e2e2e;
-  --grid: #2a2a2a;
-  --text-primary: #efefef;
-  --text-secondary: #9c9c9c;
+  --bg: #0f1012;
+  --surface-1: #18191c;
+  --surface-2: #1d1e22;
+  --border: #2c2d32;
+  --grid: #26272b;
+  --text-primary: #eeeff1;
+  --text-secondary: #a1a3a9;
+  --text-tertiary: #75777d;
   --accent: #6aabf1;
+  --accent-soft: #1a2a3f;
   --series-1: #338ced;
   --series-2: #e76624;
-  --critical: #eb6263;
+  --track: #1f3048;
+  --critical: #ef6b6b;
+  --critical-soft: #3a1d1d;
   --warning-ink: #f2c25b;
-  --chip: #242424;
+  --warning-soft: #352a12;
+  --hero-bg: #0b1626;
+  --hero-text: #eef2f7;
+  --hero-muted: #93a3b8;
+  --shadow: none;
 }
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
 body {
   margin: 0; background: var(--bg); color: var(--text-primary);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
-header { padding: 32px 0 8px; }
-h1 { font-size: clamp(24px, 4vw, 34px); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.01em; }
-.lede { color: var(--text-secondary); margin: 0; max-width: 760px; }
-.meta { color: var(--text-secondary); font-size: 13px; margin-top: 10px; }
-.meta a, a { color: var(--accent); }
-h2 { font-size: 17px; margin: 0 0 2px; }
-.sub { color: var(--text-secondary); font-size: 13px; margin: 0 0 14px; }
+a { color: var(--accent); text-underline-offset: 2px; }
+.wrap { max-width: 1160px; margin: 0 auto; padding: 0 16px; }
+.num, .tabular { font-variant-numeric: tabular-nums; }
 
-.filters {
-  position: sticky; top: 0; z-index: 1000; background: var(--bg);
-  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-  padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 20px;
+/* ---------- hero ---------- */
+.hero { background: var(--hero-bg); color: var(--hero-text); padding: 20px 0 44px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 36px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; color: var(--hero-text); text-decoration: none; }
+.brand svg { flex: none; }
+.top-actions { display: flex; gap: 8px; align-items: center; }
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 36px; min-width: 36px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: var(--hero-text);
+  font: 500 13px Inter, system-ui, sans-serif; text-decoration: none;
 }
-.filters select, .filters input[type=search] {
+.icon-btn:hover { background: rgba(255,255,255,.12); }
+.kicker { text-transform: uppercase; letter-spacing: .08em; font-size: 12px; font-weight: 600; color: var(--hero-muted); margin: 0 0 12px; }
+.hero h1 {
+  font-family: "Source Serif 4", Georgia, serif; font-weight: 700;
+  font-size: clamp(30px, 5.2vw, 52px); line-height: 1.08; letter-spacing: -0.015em;
+  margin: 0 0 16px; max-width: 900px; text-wrap: balance;
+}
+.hero h1 em { font-style: normal; color: #ff9a62; }
+.hero .lede { font-size: clamp(16px, 2vw, 19px); color: var(--hero-muted); max-width: 720px; margin: 0 0 22px; text-wrap: pretty; }
+.hero .lede b { color: var(--hero-text); font-weight: 600; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--hero-muted); }
+.meta a { color: var(--hero-text); }
+
+/* ---------- nav + filters ---------- */
+.bar { position: sticky; top: 0; z-index: 1000; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+.bar .wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 10px; padding-bottom: 10px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1 1 auto; min-width: 0; }
+.field { position: relative; flex: 1 1 220px; min-width: 0; }
+.field svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); pointer-events: none; }
+.filters input[type=search], .filters select {
   font: inherit; font-size: 14px; color: var(--text-primary); background: var(--surface-1);
-  border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; min-height: 36px;
+  border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px; height: 38px; width: 100%;
 }
-.filters input[type=search] { flex: 1 1 200px; min-width: 0; }
-.filters select { flex: 0 1 220px; min-width: 0; }
-.check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
-.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.filters input[type=search] { padding-left: 34px; }
+.filters select { flex: 0 1 210px; width: auto; min-width: 0; }
+.filters input:focus-visible, .filters select:focus-visible, button:focus-visible, a:focus-visible, tr.row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+.count { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+.link-btn { font: inherit; font-size: 13px; color: var(--accent); background: none; border: 0; padding: 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 
+/* ---------- layout ---------- */
+main.wrap { padding-top: 28px; padding-bottom: 8px; }
+section { margin-bottom: 40px; }
+.section-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+h2 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0; letter-spacing: -0.01em; }
+h3 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+.sub { color: var(--text-secondary); font-size: 14px; margin: 4px 0 0; max-width: 680px; }
 .grid { display: grid; gap: 16px; }
-.tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
-.two { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 16px; }
-.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px; min-width: 0; }
-.tile .label { color: var(--text-secondary); font-size: 13px; }
-.tile .value { font-size: 28px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; margin-top: 4px; }
-.tile .note { color: var(--text-secondary); font-size: 12px; margin-top: 4px; }
-.tile.alert .value { color: var(--critical); }
+.tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 20px; min-width: 0; box-shadow: var(--shadow); }
+.card .sub { font-size: 13px; margin-bottom: 14px; }
 
-svg text { fill: var(--text-secondary); font-size: 12px; }
+/* tiles */
+.tile { display: flex; flex-direction: column; gap: 4px; }
+.tile .label { color: var(--text-secondary); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.tile .value { font-size: clamp(24px, 3vw, 32px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.tile .note { color: var(--text-secondary); font-size: 12.5px; }
+.tile.alert { background: var(--critical-soft); border-color: transparent; }
+.tile.alert .value, .tile.alert .label { color: var(--critical); }
+.meter { height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; margin: 6px 0 2px; }
+.meter > i { display: block; height: 100%; background: var(--series-1); border-radius: 99px; }
+
+/* destaques */
+.feature { display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: transform .15s ease, border-color .15s ease; }
+.feature:hover { transform: translateY(-2px); border-color: var(--text-tertiary); }
+.feature .title { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: 19px; line-height: 1.25; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.feature .org { font-size: 12.5px; color: var(--text-secondary); }
+.feature .big { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.feature .row2 { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-secondary); }
+.feature .foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); }
+.feature .foot b { color: var(--warning-ink); font-weight: 600; }
+
+/* charts */
+svg text { fill: var(--text-secondary); font-size: 12px; font-family: Inter, system-ui, sans-serif; }
 svg .val { fill: var(--text-primary); font-weight: 600; }
 svg .gridline { stroke: var(--grid); stroke-width: 1; }
 svg .axis { stroke: var(--border); stroke-width: 1; }
+svg .zone { fill: var(--series-2); opacity: .06; }
 .chart { position: relative; }
-.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin: 0 0 10px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.fine { color: var(--text-secondary); font-size: 12px; margin: 10px 0 0; }
+.fine { color: var(--text-secondary); font-size: 12.5px; margin: 10px 0 0; }
 
 #tip {
   position: fixed; pointer-events: none; z-index: 2000; display: none; max-width: 300px;
   background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
-  border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  border-radius: 10px; padding: 9px 11px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.14);
 }
-#tip b { display: block; margin-bottom: 2px; }
+#tip b { display: block; margin-bottom: 3px; line-height: 1.3; }
 #tip .muted { color: var(--text-secondary); }
 
-#map { height: 420px; border-radius: 8px; border: 1px solid var(--border); }
-.leaflet-popup-content { font: 13px/1.4 system-ui, sans-serif; }
+#map { height: 440px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface-1); color: var(--text-primary); }
+.leaflet-popup-content { font: 13px/1.45 Inter, system-ui, sans-serif; }
+.leaflet-container a.leaflet-popup-close-button { color: var(--text-secondary); }
 
-.tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-.tabs button {
-  font: inherit; font-size: 14px; border: 1px solid var(--border); background: var(--surface-1);
-  color: var(--text-secondary); border-radius: 999px; padding: 6px 14px; cursor: pointer;
-}
-.tabs button[aria-pressed=true] { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
+/* table */
+.tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; }
+.tabs button { font: inherit; font-size: 13.5px; font-weight: 500; border: 0; background: transparent; color: var(--text-secondary); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.tabs button[aria-pressed=true] { background: var(--surface-1); color: var(--text-primary); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.table-card { padding: 0; overflow: hidden; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
-th { font-size: 12px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
+th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+thead th { position: sticky; top: 0; background: var(--surface-2); font-size: 12px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
 th[aria-sort=ascending]::after { content: " ↑"; }
 th[aria-sort=descending]::after { content: " ↓"; }
-td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+td.num, th.num { text-align: right; white-space: nowrap; }
 tbody tr.row { cursor: pointer; }
-tbody tr.row:hover { background: var(--chip); }
-td.nome { min-width: 240px; max-width: 420px; }
-.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--chip); white-space: nowrap; }
-.pill.bad { color: var(--critical); font-weight: 600; }
-.pill.warn { color: var(--warning-ink); font-weight: 600; }
-tr.detail td { background: var(--chip); font-size: 13px; color: var(--text-secondary); }
-tr.detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+tbody tr.row:hover { background: var(--surface-2); }
+td.nome { min-width: 260px; max-width: 440px; }
+td.nome .n { font-weight: 500; }
+td.nome .o { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+td .bar-mini { display: inline-flex; align-items: center; gap: 8px; }
+td .bar-mini .meter { width: 56px; margin: 0; height: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); white-space: nowrap; }
+.pill.bad { color: var(--critical); background: var(--critical-soft); border-color: transparent; font-weight: 600; }
+.pill.warn { color: var(--warning-ink); background: var(--warning-soft); border-color: transparent; font-weight: 600; }
+.nodata { color: var(--text-tertiary); font-size: 12.5px; }
+tr.detail td { background: var(--surface-2); font-size: 13px; color: var(--text-secondary); padding: 14px 16px; }
+tr.detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 5px 16px; margin: 0; }
 tr.detail dt { font-weight: 600; color: var(--text-primary); }
-tr.detail dd { margin: 0; }
-.more { margin-top: 12px; font: inherit; font-size: 14px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
-.empty { color: var(--text-secondary); padding: 24px 0; text-align: center; }
+tr.detail dd { margin: 0; overflow-wrap: anywhere; }
+.table-foot { display: flex; justify-content: center; padding: 14px; }
+.more { font: inherit; font-size: 14px; font-weight: 500; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); border-radius: 999px; padding: 8px 18px; cursor: pointer; }
+.empty { color: var(--text-secondary); padding: 32px 16px; text-align: center; }
 
-.method { margin: 16px 0 40px; }
-.method ol { padding-left: 20px; margin: 8px 0 0; }
-.method li { margin-bottom: 6px; }
-footer { color: var(--text-secondary); font-size: 13px; padding: 0 0 40px; }
+/* method */
+.method { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.method .card h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.method .card p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+.method .n { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; flex: none; }
 
-@media (max-width: 860px) {
+footer { border-top: 1px solid var(--border); padding: 24px 0 40px; color: var(--text-secondary); font-size: 13px; }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+.skeleton { color: transparent !important; background: linear-gradient(90deg, var(--grid), var(--surface-2), var(--grid)); background-size: 200% 100%; animation: sk 1.2s infinite; border-radius: 6px; }
+@keyframes sk { to { background-position: -200% 0; } }
+
+@media (max-width: 900px) {
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .two { grid-template-columns: 1fr; }
+  .two, .three, .method { grid-template-columns: 1fr; }
 }
-@media (max-width: 480px) {
-  .tile .value { font-size: 22px; }
-  .filters select { flex: 1 1 100%; }
+@media (max-width: 640px) {
+  .bar { position: static; }
+  html { scroll-padding-top: 8px; }
+  .filters select { flex: 1 1 calc(50% - 4px); }
+  .icon-btn .lbl { display: none; }
   #map { height: 340px; }
+  /* tabela vira lista de cartões */
+  thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  tr.row { padding: 14px 16px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  tr.row td { border: 0; padding: 0; text-align: left !important; max-width: none; min-width: 0; }
+  tr.row td.nome { grid-column: 1 / -1; }
+  tr.row td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-tertiary); margin-bottom: 1px; }
+  tr.row td.rep { grid-column: 1 / -1; }
+  tr.detail td { display: block; }
+  tr.detail dl { grid-template-columns: 1fr; gap: 1px; }
+  tr.detail dd { margin-bottom: 8px; }
 }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Obras federais em Teresina</h1>
-    <p class="lede">Quais obras com dinheiro federal estão em andamento, paradas ou atrasadas na capital do Piauí, e quanto do valor já foi pago.</p>
-    <p class="meta" id="meta">Carregando dados…</p>
-  </header>
-
-  <div class="filters" role="search">
-    <input type="search" id="f-busca" placeholder="Buscar obra, órgão ou ID…" aria-label="Buscar">
-    <select id="f-situacao" aria-label="Situação"><option value="">Todas as situações</option></select>
-    <select id="f-repassador" aria-label="Órgão repassador"><option value="">Todos os repassadores</option></select>
-    <label class="check"><input type="checkbox" id="f-todas"> Incluir registros fora de Teresina</label>
+<header class="hero">
+  <div class="wrap">
+    <div class="topbar">
+      <a class="brand" href="#">
+        <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1b64be"/><rect x="7" y="17" width="4" height="8" rx="1" fill="#fff"/><rect x="14" y="11" width="4" height="14" rx="1" fill="#fff"/><rect x="21" y="7" width="4" height="18" rx="1" fill="#f47230"/></svg>
+        Obras em Teresina
+      </a>
+      <div class="top-actions">
+        <a class="icon-btn" href="https://github.com/santosmiqueias/obras-teresina" aria-label="Código no GitHub">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.34.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          <span class="lbl">Código</span>
+        </a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Alternar tema claro/escuro">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        </button>
+      </div>
+    </div>
+    <p class="kicker">Dados abertos · Teresina (PI)</p>
+    <h1 id="headline">Obras federais em Teresina</h1>
+    <p class="lede" id="lede">Carregando dados…</p>
+    <div class="meta" id="meta"></div>
   </div>
+</header>
 
-  <section class="grid tiles" aria-label="Resumo">
-    <div class="card tile"><div class="label">Projetos</div><div class="value" id="t-qtd">–</div><div class="note" id="t-qtd-n"></div></div>
-    <div class="card tile"><div class="label">Valor previsto</div><div class="value" id="t-prev">–</div><div class="note" id="t-prev-n"></div></div>
-    <div class="card tile"><div class="label">Valor pago</div><div class="value" id="t-pago">–</div><div class="note" id="t-pago-n"></div></div>
-    <div class="card tile alert"><div class="label">Com alerta</div><div class="value" id="t-alerta">–</div><div class="note">paralisadas, inacabadas ou com prazo vencido</div></div>
-  </section>
-
-  <section class="grid two">
-    <div class="card">
-      <h2>Projetos por situação</h2>
-      <p class="sub">Quantidade de projetos</p>
-      <div class="chart" id="c-qtd"></div>
+<div class="bar">
+  <div class="wrap">
+    <div class="filters" role="search">
+      <div class="field">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="f-busca" placeholder="Buscar obra, órgão ou ID" aria-label="Buscar">
+      </div>
+      <select id="f-situacao" aria-label="Situação"><option value="">Todas as situações</option></select>
+      <select id="f-repassador" aria-label="Órgão repassador"><option value="">Todos os repassadores</option></select>
+      <label class="check"><input type="checkbox" id="f-todas"> Incluir fora de Teresina</label>
     </div>
-    <div class="card">
-      <h2>Valor previsto por situação</h2>
-      <p class="sub">Exclui projetos com valor simbólico (R$ 0,01)</p>
-      <div class="chart" id="c-valor"></div>
-    </div>
-  </section>
-
-  <section class="grid two">
-    <div class="card">
-      <h2>Pago × executado</h2>
-      <p class="sub">Cada ponto é uma obra com dados de pagamento. Acima da diagonal, pagou-se proporcionalmente mais do que foi construído.</p>
-      <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
-      <div class="chart" id="c-scatter"></div>
-      <p class="fine" id="scatter-note"></p>
-    </div>
-    <div class="card">
-      <h2>Mapa</h2>
-      <p class="sub" id="map-sub">Obras com localização precisa</p>
-      <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
-      <div id="map" role="region" aria-label="Mapa das obras"></div>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>Obras</h2>
-    <p class="sub">Clique em uma linha para ver detalhes. Clique no cabeçalho para ordenar.</p>
-    <div class="tabs" role="group" aria-label="Visão da tabela">
-      <button type="button" data-tab="alerta" aria-pressed="true">Com alerta</button>
-      <button type="button" data-tab="todas" aria-pressed="false">Todas</button>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th data-k="nome">Obra</th>
-          <th data-k="situacao">Situação</th>
-          <th data-k="previsto" class="num">Previsto</th>
-          <th data-k="pago" class="num">Pago</th>
-          <th data-k="pct_fisico" class="num">Executado</th>
-          <th data-k="dt_final_prevista">Prazo final</th>
-          <th data-k="repassador">Repassador</th>
-        </tr></thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
-    <div id="empty" class="empty" hidden>Nenhuma obra com esses filtros.</div>
-    <button type="button" class="more" id="more" hidden>Mostrar mais</button>
-  </section>
-
-  <section class="card method" id="metodologia">
-    <h2>Metodologia e limitações</h2>
-    <p class="sub">Leia antes de tirar conclusões.</p>
-    <ol>
-      <li><b>Fonte:</b> <a href="https://api-publica.obrasgov.gestao.gov.br/obras/docs">API de Dados Abertos do Obrasgov.br</a> (Ministério da Gestão e da Inovação, licença ODbL). Os dados são informados pelos próprios órgãos gestores.</li>
-      <li><b>Localização pouco confiável:</b> a maioria dos projetos atribuídos a Teresina tem a mesma coordenada genérica, e muitos ficam em outras cidades do Piauí. Por padrão, o painel mostra só os que <i>provavelmente</i> ficam em Teresina, com base em uma heurística sobre o nome da obra. O mapa só mostra coordenadas precisas.</li>
-      <li><b>Valores simbólicos:</b> centenas de projetos têm valor previsto de R$ 0,01 e ficam fora das somas de valor previsto.</li>
-      <li><b>Pagamentos parciais:</b> só uma pequena parte dos projetos tem empenhos na API. Repasses por convênio (Transferegov) não aparecem aqui. <b>"Sem dado" não significa que nada foi pago.</b></li>
-      <li><b>Empenhado ≠ pago ≠ executado:</b> o valor pago soma pagamentos do exercício e restos a pagar pagos. A execução física é o avanço da obra declarado pelo gestor.</li>
-      <li><b>"Com alerta"</b> = situação Paralisada ou Inacabada, ou "Em execução" com a data final prevista vencida. Atraso e paralisação podem ter causas legítimas (licenciamento, decisão judicial, rescisão), então um alerta não indica irregularidade.</li>
-    </ol>
-  </section>
-
-  <footer>
-    Código e dados: <a href="https://github.com/santosmiqueias/obras-teresina">github.com/santosmiqueias/obras-teresina</a>
-  </footer>
+    <span class="count" id="count" aria-live="polite"></span>
+    <button class="link-btn" id="limpar" type="button" hidden>Limpar filtros</button>
+  </div>
 </div>
+
+<main class="wrap">
+  <section aria-label="Resumo">
+    <div class="grid tiles">
+      <div class="card tile"><div class="label">Projetos</div><div class="value tabular skeleton" id="t-qtd">000</div><div class="note" id="t-qtd-n">&nbsp;</div></div>
+      <div class="card tile"><div class="label">Valor previsto</div><div class="value tabular skeleton" id="t-prev">R$ 0,0 bi</div><div class="note" id="t-prev-n">&nbsp;</div></div>
+      <div class="card tile"><div class="label">Valor pago</div><div class="value tabular skeleton" id="t-pago">R$ 0 mi</div><div class="meter" aria-hidden="true"><i id="t-pago-m" style="width:0"></i></div><div class="note" id="t-pago-n">&nbsp;</div></div>
+      <div class="card tile alert"><div class="label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Com alerta</div><div class="value tabular skeleton" id="t-alerta">00</div><div class="note">paralisadas, inacabadas ou com prazo vencido</div></div>
+    </div>
+  </section>
+
+  <section id="destaques">
+    <div class="section-head">
+      <div>
+        <h2>As maiores obras com alerta</h2>
+        <p class="sub">Obras paralisadas, inacabadas ou com o prazo final vencido, ordenadas pelo valor previsto. Clique para ver os detalhes na tabela.</p>
+      </div>
+    </div>
+    <div class="grid three" id="features"></div>
+  </section>
+
+  <section id="situacao">
+    <div class="section-head">
+      <div>
+        <h2>Onde cada obra está</h2>
+        <p class="sub">Em laranja, a parte de cada situação com alerta. Quase todo o dinheiro previsto está em obras ainda em execução.</p>
+      </div>
+    </div>
+    <div class="legend"><span><i class="sw" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="sw" style="background:var(--series-2)"></i>Com alerta</span></div>
+    <div class="grid two">
+      <div class="card"><h3>Quantidade de projetos</h3><p class="sub">por situação declarada no Obrasgov</p><div class="chart" id="c-qtd"></div></div>
+      <div class="card"><h3>Valor previsto</h3><p class="sub">exclui projetos com valor simbólico (R$ 0,01)</p><div class="chart" id="c-valor"></div></div>
+    </div>
+  </section>
+
+  <section id="dinheiro">
+    <div class="section-head">
+      <div>
+        <h2>O dinheiro e a obra</h2>
+        <p class="sub">Compare quanto do valor previsto já foi pago com quanto da obra foi construído, e veja onde ficam as obras com localização precisa.</p>
+      </div>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <h3>Pago × executado</h3>
+        <p class="sub">Cada ponto é uma obra com dados de pagamento. Na área sombreada, pagou-se proporcionalmente mais do que foi construído.</p>
+        <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
+        <div class="chart" id="c-scatter"></div>
+        <p class="fine" id="scatter-note"></p>
+      </div>
+      <div class="card">
+        <h3>Mapa</h3>
+        <p class="sub" id="map-sub">Obras com localização precisa</p>
+        <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
+        <div id="map" role="region" aria-label="Mapa das obras"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="obras">
+    <div class="section-head">
+      <div>
+        <h2>Todas as obras</h2>
+        <p class="sub">Clique em uma linha para ver órgão, empenhos e justificativa. Clique no cabeçalho para ordenar.</p>
+      </div>
+      <div class="tabs" role="group" aria-label="Visão da tabela">
+        <button type="button" data-tab="alerta" aria-pressed="true">Com alerta</button>
+        <button type="button" data-tab="todas" aria-pressed="false">Todas</button>
+      </div>
+    </div>
+    <div class="card table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-k="nome">Obra</th>
+            <th data-k="situacao">Situação</th>
+            <th data-k="previsto" class="num">Previsto</th>
+            <th data-k="pago" class="num">Pago</th>
+            <th data-k="pct_fisico">Executado</th>
+            <th data-k="dt_final_prevista">Prazo final</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty" class="empty" hidden>Nenhuma obra com esses filtros.</div>
+      <div class="table-foot" id="foot" hidden><button type="button" class="more" id="more">Mostrar mais</button></div>
+    </div>
+  </section>
+
+  <section id="metodologia">
+    <div class="section-head">
+      <div>
+        <h2>Como ler estes dados</h2>
+        <p class="sub">Os dados vêm de cadastros feitos pelos próprios órgãos e têm limitações importantes.</p>
+      </div>
+    </div>
+    <div class="method">
+      <div class="card"><h3><span class="n">1</span>Fonte</h3><p><a href="https://api-publica.obrasgov.gestao.gov.br/obras/docs">API de Dados Abertos do Obrasgov.br</a>, do Ministério da Gestão e da Inovação (licença ODbL). Os dados são atualizados automaticamente toda semana.</p></div>
+      <div class="card"><h3><span class="n">2</span>Localização pouco confiável</h3><p>A maioria dos projetos atribuídos a Teresina tem a mesma coordenada genérica, e muitos ficam em outras cidades do Piauí. O painel mostra só os que <i>provavelmente</i> ficam em Teresina, com base em uma heurística sobre o nome da obra. O mapa só mostra coordenadas precisas.</p></div>
+      <div class="card"><h3><span class="n">3</span>Pagamentos parciais</h3><p>Só uma pequena parte dos projetos tem empenhos na API. Repasses por convênio (Transferegov) não aparecem aqui. <b>"Sem dado" não significa que nada foi pago.</b> Centenas de projetos têm valor previsto simbólico (R$ 0,01) e ficam fora das somas.</p></div>
+      <div class="card"><h3><span class="n">4</span>Alerta não é irregularidade</h3><p>"Com alerta" = Paralisada, Inacabada ou "Em execução" com prazo vencido. Atrasos podem ter causas legítimas (licenciamento, decisão judicial, rescisão). Valor pago = pagamentos do exercício + restos a pagar pagos.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Projeto de <a href="https://github.com/santosmiqueias">santosmiqueias</a> · código aberto no <a href="https://github.com/santosmiqueias/obras-teresina">GitHub</a></span>
+    <span id="foot-meta"></span>
+  </div>
+</footer>
 <div id="tip" role="tooltip"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -261,8 +438,70 @@ const dataBR = s => s ? s.slice(0, 10).split("-").reverse().join("/") : "–";
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const $ = id => document.getElementById(id);
+const HOJE = new Date();
 
-let DATA = [], view = [], tab = "alerta", sortK = "previsto", sortDir = -1, shown = 50, map, layer;
+// ---------- nomes legíveis ----------
+const SIGLAS = new Set(["PAC", "BR", "PI", "DNIT", "PRF", "UFPI", "IFPI", "SUS", "CEAD", "UBS", "CRAS", "CREAS", "CMEI", "ETA", "ETE", "UOP", "DEL", "TED", "CR", "CT", "CTO", "II", "III", "IV", "VI", "SESC", "SENAI", "INSS", "UPA", "CAPS"]);
+const PROPRIOS = { teresina: "Teresina", piauí: "Piauí", piaui: "Piauí", parnaiba: "Parnaíba", parnaíba: "Parnaíba", poty: "Poty", petronio: "Petrônio", portela: "Portela", brasil: "Brasil", "são": "São", "josé": "José" };
+const ORGAOS = {
+  "DEPARTAMENTO NACIONAL DE INFRAESTRUTURA DE TRANSPORTES": "DNIT",
+  "COMPANHIA DE DESENVOLVIMENTO DOS VALES DO SÃO FRANCISCO E DO PARNAÍBA": "Codevasf",
+  "FUNDO NACIONAL DE SAUDE": "Fundo Nacional de Saúde",
+  "INST.FED.DE EDUC.,CIENC.E TEC.DO PIAUI": "IFPI",
+  "FUNDACAO UNIVERSIDADE FEDERAL DO PIAUI": "UFPI",
+};
+// acentos que costumam faltar em cadastros digitados em caixa alta
+const ACENTOS = { saude: "saúde", publica: "pública", publicas: "públicas", publico: "público", agua: "água", rodoviaria: "rodoviária",
+  hidrica: "hídrica", basica: "básica", basicos: "básicos", tecnica: "técnica", area: "área", areas: "áreas", modulo: "módulo", predio: "prédio",
+  sanitario: "sanitário", esgotamento: "esgotamento", unidade: "unidade", turistica: "turística", esportiva: "esportiva", aereo: "aéreo" };
+function acentua(w) {
+  if (ACENTOS[w]) return ACENTOS[w];
+  return w.replace(/coes$/, "ções").replace(/cao$/, "ção");
+}
+const PEQUENAS = new Set(["de", "da", "do", "das", "dos", "e", "em", "a", "o", "para", "no", "na"]);
+function sentenceCase(s) {
+  if (/[a-zà-ú]/.test(s)) return s;
+  return s.toLowerCase().split(/(\s+|[-/(),.:])/).map(w => {
+    const up = w.toUpperCase();
+    if (SIGLAS.has(up) || /\d/.test(w)) return up;
+    if (PROPRIOS[w]) return PROPRIOS[w];
+    return acentua(w);
+  }).join("").replace(/^\s*\S/, c => c.toUpperCase());
+}
+function titleCase(s) {
+  return s.toLowerCase().split(/(\s+|[-/(),.])/).map((w, i) => {
+    const up = w.toUpperCase();
+    if (SIGLAS.has(up)) return up;
+    if (i > 0 && PEQUENAS.has(w)) return w;
+    const a = PROPRIOS[w] || acentua(w);
+    return a.charAt(0).toUpperCase() + a.slice(1);
+  }).join("");
+}
+function orgaoCurto(o) {
+  const s = (o || "").trim();
+  if (!s) return "";
+  return ORGAOS[s.toUpperCase()] || (/[a-zà-ú]/.test(s) && s !== s.toUpperCase() && !/^[A-ZÀ-Ú][a-zà-ú]+( [a-zà-ú]+)+$/.test(s) ? s : titleCase(s));
+}
+function nomeObra(o) {
+  const n = (o.nome || "").replace(/^\d+(\.\d+)*\.?\s+/, "").trim();
+  const letras = (n.match(/[A-Za-zÀ-ú]{3,}/g) || []).length;
+  if (letras < 2) return `${o.tipo || o.natureza || "Obra"} · contrato ${o.nome}`;
+  return sentenceCase(n);
+}
+function mesesDesde(s) { if (!s) return null; const d = new Date(s); return Math.max(0, Math.round((HOJE - d) / (1000 * 60 * 60 * 24 * 30.44))); }
+function tempo(m) { if (m == null) return ""; if (m < 1) return "há menos de 1 mês"; if (m < 24) return `há ${m} ${m === 1 ? "mês" : "meses"}`; return `há ${Math.floor(m / 12)} anos`; }
+
+let DATA = [], view = [], tab = "alerta", sortK = "previsto", sortDir = -1, shown = 40, map, layer, tiles;
+
+// ---------- tema ----------
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+function isDark() { const t = document.documentElement.dataset.theme; return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; }
+const saved = store.get("tema"); if (saved) document.documentElement.dataset.theme = saved;
+$("theme").addEventListener("click", () => {
+  const t = isDark() ? "light" : "dark";
+  document.documentElement.dataset.theme = t; store.set("tema", t);
+  if (DATA.length) { renderMap(true); }
+});
 
 // ---------- tooltip ----------
 const tip = $("tip");
@@ -276,7 +515,7 @@ function showTip(e, html) {
 }
 const hideTip = () => { tip.style.display = "none"; };
 
-// ---------- filters ----------
+// ---------- filtros ----------
 function applyFilters() {
   const q = $("f-busca").value.trim().toLowerCase();
   const sit = $("f-situacao").value, rep = $("f-repassador").value, todas = $("f-todas").checked;
@@ -284,41 +523,87 @@ function applyFilters() {
     (todas || o.em_teresina) &&
     (!sit || o.situacao === sit) &&
     (!rep || (o.repassador || "").split("; ").includes(rep)) &&
-    (!q || [o.nome, o.id_projeto, o.repassador, o.orgao_responsavel, o.executor].join(" ").toLowerCase().includes(q)));
-  shown = 50;
+    (!q || [o.nome, o._nome, o.id_projeto, o.repassador, o.orgao_responsavel, o.executor].join(" ").toLowerCase().includes(q)));
+  $("limpar").hidden = !(q || sit || rep || todas);
+  $("count").textContent = `${int.format(view.length)} ${view.length === 1 ? "projeto" : "projetos"}`;
+  shown = 40;
   render();
 }
 
-// ---------- tiles ----------
+// ---------- resumo ----------
 function renderTiles() {
   const prev = view.filter(o => o.previsto != null);
   const fin = view.filter(o => o.pago != null);
   const sum = (a, k) => a.reduce((s, o) => s + (o[k] || 0), 0);
+  const pago = sum(fin, "pago"), emp = sum(fin, "empenhado");
+  document.querySelectorAll(".skeleton").forEach(e => e.classList.remove("skeleton"));
   $("t-qtd").textContent = int.format(view.length);
-  $("t-qtd-n").textContent = `${int.format(view.filter(o => o.situacao === "Em execução").length)} em execução`;
+  $("t-qtd-n").textContent = `${int.format(view.filter(o => o.situacao === "Em execução").length)} em execução · ${int.format(view.filter(o => o.situacao === "Concluída").length)} concluídos`;
   $("t-prev").textContent = brlC.format(sum(prev, "previsto"));
   $("t-prev-n").textContent = `soma de ${int.format(prev.length)} projetos com valor informado`;
-  $("t-pago").textContent = brlC.format(sum(fin, "pago"));
+  $("t-pago").textContent = brlC.format(pago);
+  $("t-pago-m").style.width = emp ? `${Math.min(100, pago / emp * 100)}%` : "0";
   $("t-pago-n").textContent = fin.length
-    ? `de ${brlC.format(sum(fin, "empenhado"))} empenhados · só ${int.format(fin.length)} projetos têm esse dado`
+    ? `${pct(emp ? pago / emp * 100 : 0)} de ${brlC.format(emp)} empenhados · dado disponível para ${int.format(fin.length)} projetos`
     : "nenhum projeto com dados de pagamento";
   $("t-alerta").textContent = int.format(view.filter(o => o.alerta).length);
 }
 
-// ---------- horizontal bar chart ----------
-function barChart(el, rows, fmt, tipFmt) {
-  const W = Math.max(280, el.clientWidth), labelW = 96, valW = 72, rowH = 34, bar = 18, top = 4;
-  const H = top + rows.length * rowH;
-  const max = Math.max(1, ...rows.map(r => r.v));
-  const plotW = W - labelW - valW;
-  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Gráfico de barras">`;
+// ---------- destaques ----------
+function renderFeatures() {
+  const top = view.filter(o => o.alerta && o.previsto != null).sort((a, b) => b.previsto - a.previsto).slice(0, 3);
+  $("destaques").hidden = !top.length;
+  $("features").innerHTML = top.map(o => {
+    const parada = o.situacao === "Paralisada" || o.situacao === "Inacabada";
+    const m = parada ? mesesDesde(o.data_paralisacao_cancelamento || o.dt_final_prevista) : mesesDesde(o.dt_final_prevista);
+    return `<article class="card feature" tabindex="0" data-id="${esc(o.id_projeto)}">
+      <div>${pill(o)}</div>
+      <p class="title">${esc(o._nome)}</p>
+      <div class="org">${esc(orgaoCurto(o.repassador || o.orgao_responsavel))}</div>
+      <div class="big tabular">${brlC.format(o.previsto)}</div>
+      <div>
+        <div class="row2"><span>Executado</span><span class="tabular">${pct(o.pct_fisico)}</span></div>
+        <div class="meter"><i style="width:${Math.min(100, o.pct_fisico || 0)}%"></i></div>
+        <div class="row2"><span>Pago</span><span class="tabular">${o.pago != null ? brlC.format(o.pago) : "sem dado"}</span></div>
+      </div>
+      <div class="foot">${parada ? `${esc(o.situacao)}` : `Prazo venceu em ${dataBR(o.dt_final_prevista)}`} <b>${tempo(m)}</b></div>
+    </article>`;
+  }).join("");
+  $("features").querySelectorAll(".feature").forEach(el => {
+    const go = () => focusRow(el.dataset.id);
+    el.addEventListener("click", go);
+    el.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+  });
+}
+function focusRow(id) {
+  tab = "alerta"; setTabs(); sortK = "previsto"; sortDir = -1; shown = 40; renderTable();
+  const tr = document.querySelector(`tr.row[data-id="${CSS.escape(id)}"]`);
+  if (tr) { tr.click(); tr.scrollIntoView({ block: "center" }); tr.focus({ preventScroll: true }); }
+}
+
+// ---------- barras empilhadas ----------
+function roundedPath(x, y, w, h, rightRound) {
+  const r = rightRound ? Math.min(4, w) : 0;
+  return `M${x},${y} h${w - r} a${r},${r} 0 0 1 ${r},${r} v${h - 2 * r} a${r},${r} 0 0 1 -${r},${r} h-${w - r} z`;
+}
+function stackedBars(el, rows, fmt, tipFmt) {
+  const W = Math.max(280, el.clientWidth), labelW = 92, valW = 74, rowH = 36, bar = 18;
+  const H = rows.length * rowH;
+  const max = Math.max(1, ...rows.map(r => r.a + r.b));
+  const pw = W - labelW - valW;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Gráfico de barras por situação">`;
   s += `<line class="axis" x1="${labelW}" x2="${labelW}" y1="0" y2="${H}"/>`;
   rows.forEach((r, i) => {
-    const y = top + i * rowH + (rowH - bar) / 2, w = r.v > 0 ? Math.max(3, r.v / max * plotW) : 0, rad = Math.min(4, w);
+    const y = i * rowH + (rowH - bar) / 2, tot = r.a + r.b;
+    let wa = r.a / max * pw, wb = r.b / max * pw;
+    if (r.a > 0) wa = Math.max(3, wa);
+    if (r.b > 0) wb = Math.max(3, wb);
+    const gap = r.a > 0 && r.b > 0 ? 2 : 0;
     s += `<text x="${labelW - 8}" y="${y + bar / 2 + 4}" text-anchor="end">${esc(r.k)}</text>`;
-    if (w) s += `<path fill="var(--series-1)" d="M${labelW},${y} h${w - rad} a${rad},${rad} 0 0 1 ${rad},${rad} v${bar - 2 * rad} a${rad},${rad} 0 0 1 -${rad},${rad} h-${w - rad} z"/>`;
-    s += `<text class="val" x="${labelW + w + 6}" y="${y + bar / 2 + 4}">${fmt(r.v)}</text>`;
-    s += `<rect data-i="${i}" x="0" y="${top + i * rowH}" width="${W}" height="${rowH}" fill="transparent"/>`;
+    if (r.a > 0) s += `<path fill="var(--series-1)" d="${roundedPath(labelW, y, wa, bar, r.b === 0)}"/>`;
+    if (r.b > 0) s += `<path fill="var(--series-2)" d="${roundedPath(labelW + wa + gap, y, wb, bar, true)}"/>`;
+    s += `<text class="val" x="${labelW + wa + gap + wb + 6}" y="${y + bar / 2 + 4}">${tot ? fmt(tot) : "–"}</text>`;
+    s += `<rect data-i="${i}" x="0" y="${i * rowH}" width="${W}" height="${rowH}" fill="transparent"/>`;
   });
   el.innerHTML = s + "</svg>";
   el.querySelectorAll("rect[data-i]").forEach(h => {
@@ -327,32 +612,37 @@ function barChart(el, rows, fmt, tipFmt) {
     h.addEventListener("mouseleave", hideTip);
   });
 }
-
 function renderBars() {
   const by = SITUACOES.map(k => {
     const a = view.filter(o => o.situacao === k);
-    return { k, n: a.length, v: 0, total: a.filter(o => o.previsto != null).reduce((s, o) => s + o.previsto, 0), nv: a.filter(o => o.previsto != null).length };
+    const v = a.filter(o => o.previsto != null);
+    return {
+      k, n: a.length, nAl: a.filter(o => o.alerta).length,
+      v: v.reduce((s, o) => s + o.previsto, 0), vAl: v.filter(o => o.alerta).reduce((s, o) => s + o.previsto, 0), nv: v.length
+    };
   });
-  barChart($("c-qtd"), by.map(r => ({ ...r, v: r.n })), v => int.format(v),
-    r => `<span class="muted">${int.format(r.n)} projetos</span>`);
-  barChart($("c-valor"), by.map(r => ({ ...r, v: r.total })), v => v ? brlC.format(v) : "–",
-    r => `<span class="muted">${brl.format(r.total)}<br>${int.format(r.nv)} de ${int.format(r.n)} projetos com valor informado</span>`);
+  stackedBars($("c-qtd"), by.map(r => ({ ...r, a: r.n - r.nAl, b: r.nAl })), v => int.format(v),
+    r => `<span class="muted">${int.format(r.n)} projetos${r.nAl ? `<br>${int.format(r.nAl)} com alerta` : ""}</span>`);
+  stackedBars($("c-valor"), by.map(r => ({ ...r, a: r.v - r.vAl, b: r.vAl })), v => brlC.format(v),
+    r => `<span class="muted">${brl.format(r.v)}${r.vAl ? `<br>${brl.format(r.vAl)} com alerta` : ""}<br>${int.format(r.nv)} de ${int.format(r.n)} projetos com valor informado</span>`);
 }
 
-// ---------- scatter ----------
+// ---------- dispersão ----------
 function renderScatter() {
   const el = $("c-scatter");
   const pts = view.filter(o => o.pct_pago != null && o.pct_fisico != null);
-  const W = Math.max(280, el.clientWidth), H = 300, m = { l: 68, r: 22, t: 12, b: 36 }, YMAX = 200;
+  const W = Math.max(280, el.clientWidth), H = 310, m = { l: 68, r: 22, t: 12, b: 40 }, YMAX = 200;
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
   const x = v => m.l + v / 100 * pw, y = v => m.t + ph - Math.min(v, YMAX) / YMAX * ph;
   let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Dispersão entre percentual pago e percentual executado">`;
-  [0, 50, 100, 150, 200].forEach(t => s += `<line class="gridline" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${t}%${t === YMAX ? "+" : ""}</text>`);
-  [0, 25, 50, 75, 100].forEach(t => s += `<text x="${x(t)}" y="${H - m.b + 16}" text-anchor="middle">${t}%</text>`);
+  s += `<path class="zone" d="M${x(0)},${y(0)} L${x(100)},${y(100)} L${x(100)},${y(YMAX)} L${x(0)},${y(YMAX)} Z"/>`;
+  [0, 50, 100, 150, 200].forEach(t => s += `<line class="gridline" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${t}%${t === YMAX ? "+" : ""}</text>`);
+  [0, 25, 50, 75, 100].forEach(t => s += `<text x="${x(t)}" y="${H - m.b + 18}" text-anchor="middle">${t}%</text>`);
   s += `<text x="${m.l + pw / 2}" y="${H - 4}" text-anchor="middle">execução física</text>`;
   s += `<text transform="translate(12 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle">% do previsto já pago</text>`;
-  s += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(100)}" y2="${y(100)}" stroke="var(--text-secondary)" stroke-width="1" stroke-dasharray="0" opacity=".5"/>`;
-  s += `<text x="${x(100) - 4}" y="${y(100) - 6}" text-anchor="end">pago = executado</text>`;
+  s += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(100)}" y2="${y(100)}" stroke="var(--text-tertiary)" stroke-width="1"/>`;
+  s += `<text x="${x(3)}" y="${y(185)}">pagou mais do que construiu</text>`;
+  s += `<text x="${x(100) - 4}" y="${y(100) + 16}" text-anchor="end">pago = executado</text>`;
   const ord = [...pts].sort((a, b) => a.alerta - b.alerta);
   ord.forEach((o, i) => {
     const cx = x(o.pct_fisico), cy = y(o.pct_pago);
@@ -363,45 +653,51 @@ function renderScatter() {
   el.innerHTML = s + "</svg>";
   el.querySelectorAll("circle[data-i]").forEach(h => {
     const o = ord[+h.dataset.i];
-    h.addEventListener("mousemove", e => showTip(e, `<b>${esc(o.nome)}</b><span class="muted">${esc(o.situacao)}${o.prazo_vencido ? " · prazo vencido" : ""}<br>Pago: ${brl.format(o.pago)} de ${brl.format(o.previsto)} (${pct(o.pct_pago)})<br>Execução física: ${pct(o.pct_fisico)}</span>`));
+    h.addEventListener("mousemove", e => showTip(e, `<b>${esc(o._nome)}</b><span class="muted">${esc(o.situacao)}${o.prazo_vencido ? " · prazo vencido" : ""}<br>Pago: ${brl.format(o.pago)} de ${brl.format(o.previsto)} (${pct(o.pct_pago)})<br>Execução física: ${pct(o.pct_fisico)}</span>`));
     h.addEventListener("mouseleave", hideTip);
   });
   const acima = pts.filter(o => o.pct_pago > YMAX).length;
   $("scatter-note").textContent = `${int.format(pts.length)} obras com pagamento e execução física informados.` +
-    (acima ? ` ${int.format(acima)} passam de ${YMAX}% e aparecem no topo, provavelmente por valor previsto subdeclarado. Passe o mouse para ver o valor real.` : "");
+    (acima ? ` ${int.format(acima)} passam de ${YMAX}% e aparecem no topo, provavelmente por valor previsto subdeclarado.` : "");
 }
 
-// ---------- map ----------
-function renderMap() {
+// ---------- mapa ----------
+function renderMap(themeChanged) {
   if (!window.L) { $("map").innerHTML = '<p class="empty">Não foi possível carregar o mapa.</p>'; return; }
   if (!map) {
     map = L.map("map", { scrollWheelZoom: false }).setView([-5.09, -42.80], 11);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
     layer = L.layerGroup().addTo(map);
+  }
+  if (!tiles || themeChanged) {
+    if (tiles) tiles.remove();
+    tiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${isDark() ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png`, {
+      maxZoom: 19, subdomains: "abcd",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
   }
   layer.clearLayers();
   const pts = view.filter(o => o.lat != null);
   const c1 = css("--series-1"), c2 = css("--series-2"), ring = css("--surface-1");
   [...pts].sort((a, b) => a.alerta - b.alerta).forEach(o => {
     L.circleMarker([o.lat, o.lon], { radius: 6, color: ring, weight: 2, fillColor: o.alerta ? c2 : c1, fillOpacity: 1 })
-      .bindPopup(`<b>${esc(o.nome)}</b><br>${esc(o.situacao)}${o.prazo_vencido ? " · prazo vencido" : ""}<br>Previsto: ${o.previsto != null ? brl.format(o.previsto) : "–"}<br>Executado: ${pct(o.pct_fisico)}`)
+      .bindPopup(`<b>${esc(o._nome)}</b><br>${esc(o.situacao)}${o.prazo_vencido ? " · prazo vencido" : ""}<br>Previsto: ${o.previsto != null ? brl.format(o.previsto) : "–"}<br>Executado: ${pct(o.pct_fisico)}`)
       .addTo(layer);
   });
-  $("map-sub").textContent = `${int.format(pts.length)} de ${int.format(view.length)} obras têm localização precisa. As demais usam um ponto genérico e não aparecem.`;
+  $("map-sub").textContent = `${int.format(pts.length)} de ${int.format(view.length)} obras têm localização precisa. As demais usam um ponto genérico e ficam fora do mapa.`;
 }
 
-// ---------- table ----------
-function situacaoPill(o) {
+// ---------- tabela ----------
+function pill(o) {
   if (o.situacao === "Paralisada" || o.situacao === "Inacabada") return `<span class="pill bad">⛔ ${esc(o.situacao)}</span>`;
   if (o.prazo_vencido) return `<span class="pill warn">⚠ Prazo vencido</span>`;
   return `<span class="pill">${esc(o.situacao)}</span>`;
 }
+function setTabs() { document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-pressed", x.dataset.tab === tab)); }
 function renderTable() {
   let rows = tab === "alerta" ? view.filter(o => o.alerta) : view;
+  const key = sortK === "nome" ? "_nome" : sortK;
   rows = [...rows].sort((a, b) => {
-    const va = a[sortK], vb = b[sortK];
+    const va = a[key], vb = b[key];
     if (va == null && vb == null) return 0;
     if (va == null) return 1;
     if (vb == null) return -1;
@@ -410,64 +706,67 @@ function renderTable() {
   document.querySelectorAll("th[data-k]").forEach(th =>
     th.setAttribute("aria-sort", th.dataset.k === sortK ? (sortDir > 0 ? "ascending" : "descending") : "none"));
   $("tbody").innerHTML = rows.slice(0, shown).map((o, i) => `
-    <tr class="row" data-i="${i}" tabindex="0">
-      <td class="nome">${esc(o.nome)}</td>
-      <td>${situacaoPill(o)}</td>
-      <td class="num">${o.previsto != null ? brlC.format(o.previsto) : "–"}</td>
-      <td class="num">${o.pago != null ? brlC.format(o.pago) : '<span title="Sem dados de pagamento na API">sem dado</span>'}</td>
-      <td class="num">${pct(o.pct_fisico)}</td>
-      <td>${dataBR(o.dt_final_prevista)}</td>
-      <td>${esc(o.repassador || "–")}</td>
+    <tr class="row" data-i="${i}" data-id="${esc(o.id_projeto)}" tabindex="0" aria-expanded="false">
+      <td class="nome"><div class="n">${esc(o._nome)}</div><div class="o">${esc(orgaoCurto(o.repassador || o.orgao_responsavel) || "Órgão não informado")}</div></td>
+      <td data-label="Situação">${pill(o)}</td>
+      <td class="num" data-label="Previsto">${o.previsto != null ? brlC.format(o.previsto) : '<span class="nodata">não informado</span>'}</td>
+      <td class="num" data-label="Pago">${o.pago != null ? brlC.format(o.pago) : '<span class="nodata">sem dado</span>'}</td>
+      <td data-label="Executado">${o.pct_fisico != null ? `<span class="bar-mini"><span class="meter"><i style="width:${Math.min(100, o.pct_fisico)}%"></i></span><span class="tabular">${pct(o.pct_fisico)}</span></span>` : '<span class="nodata">–</span>'}</td>
+      <td data-label="Prazo final" class="tabular">${dataBR(o.dt_final_prevista)}</td>
     </tr>`).join("");
   $("empty").hidden = rows.length > 0;
-  $("more").hidden = rows.length <= shown;
+  $("foot").hidden = rows.length <= shown;
   $("more").textContent = `Mostrar mais (${int.format(rows.length - shown)} restantes)`;
   $("tbody").querySelectorAll("tr.row").forEach(tr => {
     const toggle = () => {
       const next = tr.nextElementSibling;
-      if (next && next.classList.contains("detail")) { next.remove(); return; }
+      if (next && next.classList.contains("detail")) { next.remove(); tr.setAttribute("aria-expanded", "false"); return; }
       const o = rows[+tr.dataset.i];
       const d = [
-        ["ID", o.id_projeto], ["Natureza", o.natureza], ["Tipo", o.tipo],
-        ["Órgão responsável", o.orgao_responsavel], ["Executor", o.executor],
+        ["Nome no cadastro", o.nome], ["ID", o.id_projeto], ["Tipo", o.tipo],
+        ["Repassador", o.repassador], ["Órgão responsável", o.orgao_responsavel], ["Executor", o.executor],
         ["Empenhado", o.empenhado != null ? brl.format(o.empenhado) : null],
         ["Pago", o.pago != null ? `${brl.format(o.pago)} (${pct(o.pct_pago)} do previsto)` : null],
         ["Paralisada/cancelada em", o.data_paralisacao_cancelamento ? dataBR(o.data_paralisacao_cancelamento) : null],
         ["Justificativa", o.justificativa],
         ["Atenção", o.outro_municipio ? `o nome cita outro local (${o.outro_municipio})` : (!o.em_teresina ? "projeto de abrangência estadual ou nacional" : null)],
       ].filter(([, v]) => v);
-      tr.insertAdjacentHTML("afterend", `<tr class="detail"><td colspan="7"><dl>${d.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl></td></tr>`);
+      tr.insertAdjacentHTML("afterend", `<tr class="detail"><td colspan="6"><dl>${d.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl></td></tr>`);
+      tr.setAttribute("aria-expanded", "true");
     };
     tr.addEventListener("click", toggle);
     tr.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
   });
 }
 
-function render() { renderTiles(); renderBars(); renderScatter(); renderMap(); renderTable(); }
+function render() { renderTiles(); renderFeatures(); renderBars(); renderScatter(); renderMap(); renderTable(); }
 
-// ---------- boot ----------
+// ---------- início ----------
 fetch("data.json").then(r => r.json()).then(d => {
-  DATA = d.obras;
-  $("meta").innerHTML = `Fonte: <a href="https://api-publica.obrasgov.gestao.gov.br/obras/docs">Obrasgov.br</a> · base atualizada em ${dataBR(d.data_atualizacao_base)} · <a href="#metodologia">metodologia e limitações</a>`;
+  DATA = d.obras.map(o => ({ ...o, _nome: nomeObra(o) }));
+  const base = DATA.filter(o => o.em_teresina), al = base.filter(o => o.alerta);
+  const valAl = al.reduce((s, o) => s + (o.previsto || 0), 0);
+  $("headline").innerHTML = `<em>${int.format(al.length)} obras federais</em> em Teresina estão paradas ou com o prazo vencido`;
+  $("lede").innerHTML = `Juntas, somam <b>${brlC.format(valAl)}</b> em investimento previsto. Este painel mostra a situação de <b>${int.format(base.length)} obras</b> com recursos federais na capital do Piauí: quanto já foi pago, quanto foi construído e onde estão.`;
+  const atual = `Base do Obrasgov.br atualizada em ${dataBR(d.data_atualizacao_base)}`;
+  $("meta").innerHTML = `<span>${atual}</span><a href="#metodologia">Como ler estes dados</a><a href="https://api-publica.obrasgov.gestao.gov.br/obras/docs">Fonte: API Obrasgov.br</a>`;
+  $("foot-meta").textContent = atual;
   SITUACOES.forEach(s => $("f-situacao").insertAdjacentHTML("beforeend", `<option>${s}</option>`));
   const reps = [...new Set(DATA.flatMap(o => (o.repassador || "").split("; ").filter(Boolean)))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-  reps.forEach(r => $("f-repassador").insertAdjacentHTML("beforeend", `<option>${esc(r)}</option>`));
+  reps.forEach(r => $("f-repassador").insertAdjacentHTML("beforeend", `<option value="${esc(r)}">${esc(orgaoCurto(r))}</option>`));
   ["f-situacao", "f-repassador", "f-todas"].forEach(id => $(id).addEventListener("change", applyFilters));
   let t; $("f-busca").addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilters, 200); });
-  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
-    tab = b.dataset.tab; shown = 50;
-    document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-pressed", x === b));
-    renderTable();
-  }));
+  $("limpar").addEventListener("click", () => { $("f-busca").value = ""; $("f-situacao").value = ""; $("f-repassador").value = ""; $("f-todas").checked = false; applyFilters(); });
+  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => { tab = b.dataset.tab; shown = 40; setTabs(); renderTable(); }));
   document.querySelectorAll("th[data-k]").forEach(th => th.addEventListener("click", () => {
     if (sortK === th.dataset.k) sortDir *= -1; else { sortK = th.dataset.k; sortDir = ["previsto", "pago", "pct_fisico"].includes(sortK) ? -1 : 1; }
     renderTable();
   }));
-  $("more").addEventListener("click", () => { shown += 50; renderTable(); });
+  $("more").addEventListener("click", () => { shown += 40; renderTable(); });
   let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { renderBars(); renderScatter(); }, 150); });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderMap);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => renderMap(true));
   applyFilters();
-}).catch(err => { $("meta").textContent = "Erro ao carregar os dados: " + err.message; });
+}).catch(err => { $("lede").textContent = "Erro ao carregar os dados: " + err.message; });
 </script>
 </body>
 </html>
