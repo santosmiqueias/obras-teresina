@@ -10,8 +10,8 @@ Fluxo:
   5. /historico-situacao-cancelada-paralisada -> motivo e data da paralisação
 
 Uso:
-  python coletar.py                      # Teresina (IBGE 2211001)
-  python coletar.py --ibge 2211001 --workers 4
+  python scripts/coletar.py                      # Teresina (IBGE 2211001)
+  python scripts/coletar.py --ibge 2211001 --workers 4
 
 As respostas brutas ficam em cache (data/raw/), então rodar de novo só
 busca o que faltou.
@@ -114,7 +114,7 @@ def main() -> None:
         "projetos": len(ids),
         "falhas": falhas,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Concluído. Falhas: {len(falhas)}. Agora rode: python processar.py")
+    print(f"Concluído. Falhas: {len(falhas)}. Agora rode: python scripts/processar.py")
 
 
 if __name__ == "__main__":

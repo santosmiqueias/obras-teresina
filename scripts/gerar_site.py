@@ -2,7 +2,7 @@
 Gera docs/data.json (dados do dashboard) a partir de data/obras_<ibge>.csv.
 
 Uso:
-  python gerar_site.py
+  python scripts/gerar_site.py
 Depois abra docs/index.html via um servidor local:
   python -m http.server -d docs 8000
 """

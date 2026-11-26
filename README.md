@@ -11,20 +11,47 @@ gráficos por situação; dispersão "% pago × % executado"; mapa das obras com
 localização precisa; e tabela das obras com alerta (paralisadas, inacabadas ou
 com prazo vencido).
 
-## Como rodar
+## Atualização automática
+
+Tudo roda no próprio GitHub, sem depender de nenhum computador. O workflow
+[`atualizar-e-publicar.yml`](.github/workflows/atualizar-e-publicar.yml)
+(GitHub Actions):
+
+1. **toda segunda-feira** coleta os dados mais recentes da API do Obrasgov.br;
+2. gera a tabela e os dados do painel e salva no repositório;
+3. publica o painel no GitHub Pages.
+
+Para atualizar na hora: aba **Actions** → *Atualizar dados e publicar painel* →
+**Run workflow**.
+
+## Estrutura
+
+```
+├── scripts/
+│   ├── coletar.py       # baixa os dados da API (cache em data/raw/, fora do git)
+│   ├── processar.py     # gera data/obras_2211001.csv
+│   └── gerar_site.py    # gera docs/data.json
+├── data/
+│   ├── obras_2211001.csv        # tabela final, uma linha por projeto
+│   ├── geometrias_2211001.json  # localizações retornadas pela API
+│   └── metadados.json           # data da base e da coleta
+├── docs/                # painel (HTML/CSS/JS puro, sem build)
+│   ├── index.html
+│   └── data.json
+└── .github/workflows/   # automação
+```
+
+## Rodar manualmente (opcional)
 
 ```bash
 pip install -r requirements.txt
-python coletar.py      # baixa os dados da API (~10 min na 1ª vez; depois usa cache)
-python processar.py    # gera data/obras_2211001.csv
-python gerar_site.py   # gera docs/data.json (dados do painel)
+python scripts/coletar.py      # ~10 min na 1ª vez
+python scripts/processar.py
+python scripts/gerar_site.py
 python -m http.server -d docs 8000   # abra http://localhost:8000
 ```
 
-O painel (`docs/`) é HTML/CSS/JS puro, sem etapa de build, publicado pelo
-GitHub Pages a partir da pasta `docs/` da branch `main`.
-
-Para outro município, passe o código IBGE: `python coletar.py --ibge 2211001`.
+Para outro município, passe o código IBGE: `python scripts/coletar.py --ibge 2211001`.
 
 ## Fonte de dados
 
@@ -86,4 +113,4 @@ próprias em vez de removidos:
 - [ ] Cruzar com convênios do Portal da Transparência para cobrir os repasses
 - [ ] Geocodificar pelo endereço/CEP para corrigir o ponto genérico
 - [x] Dashboard com mapa, filtros e indicador "% pago × executado"
-- [ ] Atualização automática agendada (GitHub Actions)
+- [x] Atualização automática agendada (GitHub Actions)
