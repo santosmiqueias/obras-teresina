@@ -6,6 +6,8 @@ já foi empenhado e pago e quanto a União já repassou em convênios.
 
 **Painel:** https://santosmiqueias.github.io/obras-teresina/
 
+![Painel de obras federais em Teresina](.github/print-painel.jpg)
+
 O painel tem:
 
 - **manchete e destaques** gerados a partir dos dados (obras paralisadas, inacabadas
