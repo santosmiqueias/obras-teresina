@@ -1,15 +1,15 @@
 # Obras Federais em Teresina
 
 Coleta e organiza dados públicos sobre obras com recursos federais em Teresina (PI):
-situação (concluída, em execução, paralisada...), execução física e quanto do valor
-já foi empenhado e pago.
+situação (concluída, em execução, paralisada...), execução física, quanto do valor
+já foi empenhado e pago e quanto a União já repassou em convênios.
 
 **Painel:** https://santosmiqueias.github.io/obras-teresina/
 
 O painel tem filtros por situação, órgão repassador e busca; indicadores-resumo;
 gráficos por situação; dispersão "% pago × % executado"; mapa das obras com
-localização precisa; e tabela das obras com alerta (paralisadas, inacabadas ou
-com prazo vencido).
+localização precisa; tabela das obras com alerta (paralisadas, inacabadas ou
+com prazo vencido); e uma seção de convênios com o valor acordado e o já repassado.
 
 ## Atualização automática
 
@@ -17,7 +17,8 @@ Tudo roda no próprio GitHub, sem depender de nenhum computador. O workflow
 [`atualizar-e-publicar.yml`](.github/workflows/atualizar-e-publicar.yml)
 (GitHub Actions):
 
-1. **toda segunda-feira** coleta os dados mais recentes da API do Obrasgov.br;
+1. **toda segunda-feira** coleta os dados mais recentes da API do Obrasgov.br e
+   o arquivo de convênios do Portal da Transparência;
 2. gera a tabela e os dados do painel e salva no repositório;
 3. publica o painel no GitHub Pages.
 
@@ -30,9 +31,12 @@ Para atualizar na hora: aba **Actions** → *Atualizar dados e publicar painel* 
 ├── scripts/
 │   ├── coletar.py       # baixa os dados da API (cache em data/raw/, fora do git)
 │   ├── processar.py     # gera data/obras_2211001.csv
-│   └── gerar_site.py    # gera docs/data.json
+│   ├── coletar_convenios.py    # baixa convênios do Portal da Transparência
+│   ├── processar_convenios.py  # gera data/convenios_2211001.csv
+│   └── gerar_site.py    # gera docs/data.json e docs/convenios.json
 ├── data/
 │   ├── obras_2211001.csv        # tabela final, uma linha por projeto
+│   ├── convenios_2211001.csv    # convênios, uma linha por convênio
 │   ├── geometrias_2211001.json  # localizações retornadas pela API
 │   └── metadados.json           # data da base e da coleta
 ├── docs/                # painel (HTML/CSS/JS puro, sem build)
@@ -47,6 +51,8 @@ Para atualizar na hora: aba **Actions** → *Atualizar dados e publicar painel* 
 pip install -r requirements.txt
 python scripts/coletar.py      # ~10 min na 1ª vez
 python scripts/processar.py
+python scripts/coletar_convenios.py   # ~70 MB, alguns segundos
+python scripts/processar_convenios.py
 python scripts/gerar_site.py
 python -m http.server -d docs 8000   # abra http://localhost:8000
 ```
@@ -68,6 +74,20 @@ Para outro município, passe o código IBGE: `python scripts/coletar.py --ibge 2
 
 A API não pede autenticação, aceita até 200 itens por página e informa a data da
 última atualização em `/data-atualizacao`.
+
+## Convênios (Portal da Transparência)
+
+[Arquivo de convênios](https://portaldatransparencia.gov.br/download-de-dados/convenios)
+da CGU, sem necessidade de chave de API. Escopo e definições:
+
+- convênios com vigência a partir de 2015 cujo convenente fica em Teresina;
+- **convênios com o Governo do Estado ficam de fora**: aparecem em Teresina só
+  porque a sede do governo fica na capital, mas valem para o Piauí todo;
+- `valor_repassado` = valor liberado pela União; `sem_repasse` = convênio em
+  andamento sem nenhum repasse; `vigencia_vencida` = em andamento com vigência
+  encerrada;
+- obra e convênio são ligados (`obras_relacionadas`) só quando o número do
+  convênio aparece no cadastro da obra no Obrasgov, o que acontece em poucos casos.
 
 ## Saída: `data/obras_2211001.csv`
 
@@ -110,7 +130,7 @@ próprias em vez de removidos:
 
 ## Próximos passos
 
-- [ ] Cruzar com convênios do Portal da Transparência para cobrir os repasses
+- [x] Cruzar com convênios do Portal da Transparência para cobrir os repasses
 - [ ] Geocodificar pelo endereço/CEP para corrigir o ponto genérico
 - [x] Dashboard com mapa, filtros e indicador "% pago × executado"
 - [x] Atualização automática agendada (GitHub Actions)

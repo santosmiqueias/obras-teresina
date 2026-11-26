@@ -40,6 +40,8 @@ jobs:
           pip install -r requirements.txt
           python scripts/coletar.py
           python scripts/processar.py
+          python scripts/coletar_convenios.py
+          python scripts/processar_convenios.py
           python scripts/gerar_site.py
 
       - name: Salvar dados atualizados no repositório

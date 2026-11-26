@@ -46,6 +46,26 @@ def main() -> None:
         df[c] = pd.to_numeric(df[c], errors="coerce")
     meta = json.loads((Path(args.dados) / "metadados.json").read_text(encoding="utf-8"))
 
+    # convênios do Portal da Transparência (opcional: só se já foram coletados)
+    conv_csv = Path(args.dados) / f"convenios_{args.ibge}.csv"
+    convenios, conv_por_obra = [], {}
+    if conv_csv.exists():
+        cv = pd.read_csv(conv_csv, dtype={"numero": str, "numero_original": str})
+        for r in cv.to_dict("records"):
+            c = {k: limpo(v) for k, v in r.items()}
+            c["obras_relacionadas"] = [o for o in (c["obras_relacionadas"] or "").split("; ") if o]
+            c["vencido_incompleto"] = bool(c["vigencia_vencida"] and (c["pct_repassado"] or 0) < 99)
+            for oid in c["obras_relacionadas"]:
+                conv_por_obra.setdefault(oid, []).append(
+                    {"numero": c["numero"], "acordado": c["valor_acordado"], "repassado": c["valor_repassado"]})
+            convenios.append(c)
+        meta_conv = json.loads((Path(args.dados) / "metadados_convenios.json").read_text(encoding="utf-8"))
+        Path(args.saida).with_name("convenios.json").write_text(json.dumps({
+            "arquivo_portal": meta_conv.get("arquivo"),
+            "convenios": convenios,
+        }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        print(f"{len(convenios)} convênios -> {Path(args.saida).with_name('convenios.json')}")
+
     obras = []
     for r in df.to_dict("records"):
         lat, lon = limpo(r["latitude"]), limpo(r["longitude"])
@@ -66,6 +86,7 @@ def main() -> None:
             "em_teresina": bool(r["provavelmente_em_teresina"]),
             "lat": round(lat, 5) if mapa_ok else None,
             "lon": round(lon, 5) if mapa_ok else None,
+            "convenios": conv_por_obra.get(r["id_projeto"], []),
         })
         obras.append(o)
 
