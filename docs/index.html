@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.css">
 <style>
 :root {
   color-scheme: light;
@@ -204,7 +205,30 @@ svg .zone { fill: var(--series-2); opacity: .06; }
 #tip b { display: block; margin-bottom: 3px; line-height: 1.3; }
 #tip .muted { color: var(--text-secondary); }
 
-#map { height: 480px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); }
+#map { height: 520px; border-radius: 10px; border: 1px solid var(--border); background: #e9e6df; }
+#map.full { position: fixed !important; inset: 0; z-index: 3000; height: 100vh; height: 100dvh; border-radius: 0; border: 0; }
+.pin { background: none; border: 0; }
+.pin svg { display: block; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); transition: transform .12s ease; transform-origin: 50% 100%; }
+.pin:hover svg { transform: scale(1.15); }
+.cluster { background: none; border: 0; }
+.cluster div { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #1b64be; color: #fff; font: 700 13px Inter, system-ui, sans-serif; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); width: 100%; height: 100%; }
+.cluster span.al { position: absolute; top: -6px; right: -8px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #f47230; color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+.map-ctl { display: flex; gap: 0; background: #fff; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,.3); overflow: hidden; }
+.map-ctl button { font: 600 13px Inter, system-ui, sans-serif; border: 0; background: #fff; color: #333; padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.map-ctl button + button { border-left: 1px solid #ddd; }
+.map-ctl button[aria-pressed=true] { background: #1b64be; color: #fff; }
+.pop { min-width: 220px; max-width: 280px; }
+.pop .t { font-weight: 600; font-size: 14px; line-height: 1.3; margin: 6px 0 2px; }
+.pop .org { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+.pop .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 12.5px; }
+.pop .kv span:nth-child(odd) { color: var(--text-secondary); }
+.pop .kv span:nth-child(even) { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pop .meter { margin: 2px 0 6px; height: 6px; }
+.pop .links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 12.5px; font-weight: 600; }
+.leaflet-container { font-family: Inter, system-ui, sans-serif; }
+.leaflet-control-attribution { font-size: 10.5px; }
+@media (max-width: 640px) { .leaflet-control-attribution { font-size: 9px; max-width: 70%; white-space: normal; } .map-ctl button span { display: none; } }
+.map-hint { font-size: 12.5px; color: var(--text-secondary); margin: 8px 0 0; }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface-1); color: var(--text-primary); }
 .leaflet-popup-content { font: 13px/1.45 Inter, system-ui, sans-serif; }
 .leaflet-container a.leaflet-popup-close-button { color: var(--text-secondary); }
@@ -401,6 +425,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
       <p class="sub" id="map-sub">Obras com localização precisa</p>
       <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
       <div id="map" role="region" aria-label="Mapa das obras"></div>
+      <p class="map-hint">Clique em um alfinete para ver a obra. Círculos com número agrupam obras próximas: clique para aproximar. Para usar a roda do mouse, clique no mapa antes.</p>
     </div>
   </section>
 
@@ -505,6 +530,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
 <div id="tip" role="tooltip"></div>
 
 <script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/leaflet.markercluster/leaflet.markercluster.js"></script>
 <script>
 const SITUACOES = ["Em execução", "Paralisada", "Inacabada", "Cadastrada", "Concluída", "Cancelada"];
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -586,7 +612,7 @@ const saved = store.get("tema"); if (saved) document.documentElement.dataset.the
 $("theme").addEventListener("click", () => {
   const t = isDark() ? "light" : "dark";
   document.documentElement.dataset.theme = t; store.set("tema", t);
-  if (DATA.length) { renderMap(true); }
+  
 });
 
 // ---------- tooltip ----------
@@ -769,28 +795,97 @@ function renderComparison() {
 }
 
 // ---------- mapa ----------
-function renderMap(themeChanged) {
+let base = "mapa", camadas = {}, cluster;
+const CAMADAS = {
+  mapa: () => [L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 19, attribution: "Mapa &copy; Esri, HERE, Garmin, OpenStreetMap e colaboradores"
+  })],
+  satelite: () => [
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19, attribution: "Imagens &copy; Esri, Maxar, Earthstar Geographics"
+    }),
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }),
+  ],
+};
+function trocarBase(nome) {
+  base = nome;
+  Object.values(camadas).flat().forEach(l => map.removeLayer(l));
+  camadas[nome] ||= CAMADAS[nome]();
+  camadas[nome].forEach(l => l.addTo(map).bringToBack());
+  document.querySelectorAll(".map-ctl [data-base]").forEach(b => b.setAttribute("aria-pressed", b.dataset.base === nome));
+}
+function pinIcon(alerta) {
+  const cor = alerta ? "#f47230" : "#1b64be";
+  return L.divIcon({
+    className: "pin", iconSize: [28, 38], iconAnchor: [14, 37], popupAnchor: [0, -32],
+    html: `<svg width="28" height="38" viewBox="0 0 28 38" aria-hidden="true"><path d="M14 1C6.8 1 1 6.7 1 13.8 1 23.4 14 37 14 37s13-13.6 13-23.2C27 6.7 21.2 1 14 1Z" fill="${cor}" stroke="#fff" stroke-width="2"/><circle cx="14" cy="13.5" r="5" fill="#fff"/>${alerta ? '<path d="M14 10.5v3.6M14 16.2v.1" stroke="#f47230" stroke-width="2" stroke-linecap="round"/>' : ""}</svg>`
+  });
+}
+function popupObra(o) {
+  const gmaps = `https://www.google.com/maps/search/?api=1&query=${o.lat},${o.lon}`;
+  return `<div class="pop">
+    ${pill(o)}
+    <div class="t">${esc(o._nome)}</div>
+    <div class="org">${esc(orgaoCurto(o.repassador || o.orgao_responsavel) || "")}</div>
+    <div class="kv">
+      <span>Valor previsto</span><span>${o.previsto != null ? brlC.format(o.previsto) : "não informado"}</span>
+      <span>Construído</span><span>${pct(o.pct_fisico)}</span>
+    </div>
+    ${o.pct_fisico != null ? `<div class="meter"><i style="width:${Math.min(100, o.pct_fisico)}%"></i></div>` : ""}
+    <div class="kv">
+      <span>Pago</span><span>${o.pago != null ? brlC.format(o.pago) : "sem dado"}</span>
+      <span>Prazo final</span><span>${dataBR(o.dt_final_prevista)}</span>
+    </div>
+    <div class="links"><a href="${gmaps}" target="_blank" rel="noopener">Abrir no Google Maps ↗</a><a href="#obras" data-ver="${esc(o.id_projeto)}">Ver detalhes</a></div>
+  </div>`;
+}
+function renderMap() {
   if (!window.L) { $("map").innerHTML = '<p class="empty">Não foi possível carregar o mapa.</p>'; return; }
   if (!map) {
-    map = L.map("map", { scrollWheelZoom: false }).setView([-5.09, -42.80], 11);
-    layer = L.layerGroup().addTo(map);
-  }
-  if (!tiles || themeChanged) {
-    if (tiles) tiles.remove();
-    tiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${isDark() ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png`, {
-      maxZoom: 19, subdomains: "abcd",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    map = L.map("map", { scrollWheelZoom: false, zoomControl: true }).setView([-5.09, -42.80], 12);
+    map.on("click focus", () => map.scrollWheelZoom.enable());
+    map.on("mouseout", () => map.scrollWheelZoom.disable());
+    const Ctl = L.Control.extend({ onAdd() {
+      const d = L.DomUtil.create("div", "map-ctl");
+      d.innerHTML = '<button type="button" data-base="mapa" aria-pressed="true">Mapa</button><button type="button" data-base="satelite" aria-pressed="false">Satélite</button>';
+      L.DomEvent.disableClickPropagation(d);
+      d.querySelectorAll("[data-base]").forEach(b => b.addEventListener("click", () => trocarBase(b.dataset.base)));
+      return d;
+    } });
+    new Ctl({ position: "topright" }).addTo(map);
+    const Full = L.Control.extend({ onAdd() {
+      const d = L.DomUtil.create("div", "map-ctl");
+      d.innerHTML = '<button type="button" aria-pressed="false" title="Tela cheia">⛶ <span>Tela cheia</span></button>';
+      L.DomEvent.disableClickPropagation(d);
+      const b = d.querySelector("button");
+      b.addEventListener("click", () => {
+        const on = $("map").classList.toggle("full");
+        b.setAttribute("aria-pressed", on); b.querySelector("span").textContent = on ? "Sair" : "Tela cheia";
+        setTimeout(() => map.invalidateSize(), 50);
+      });
+      addEventListener("keydown", e => { if (e.key === "Escape" && $("map").classList.contains("full")) b.click(); });
+      return d;
+    } });
+    new Full({ position: "topleft" }).addTo(map);
+    trocarBase("mapa");
+    cluster = L.markerClusterGroup({
+      showCoverageOnHover: false, maxClusterRadius: 44, spiderfyOnMaxZoom: true,
+      iconCreateFunction: c => {
+        const ms = c.getAllChildMarkers(), n = ms.length, al = ms.filter(m => m.options.alerta).length;
+        const sz = n < 10 ? 36 : n < 50 ? 44 : 52;
+        return L.divIcon({ className: "cluster", iconSize: [sz, sz], html: `<div>${n}${al ? `<span class="al" title="${al} com alerta">${al}</span>` : ""}</div>` });
+      }
     }).addTo(map);
+    map.on("popupopen", e => {
+      const a = e.popup.getElement().querySelector("[data-ver]");
+      if (a) a.addEventListener("click", ev => { ev.preventDefault(); if ($("map").classList.contains("full")) document.querySelector(".map-ctl [title]").click(); focusRow(a.dataset.ver); });
+    });
   }
-  layer.clearLayers();
+  cluster.clearLayers();
   const pts = view.filter(o => o.lat != null);
-  const c1 = css("--series-1"), c2 = css("--series-2"), ring = css("--surface-1");
-  [...pts].sort((a, b) => a.alerta - b.alerta).forEach(o => {
-    L.circleMarker([o.lat, o.lon], { radius: 6, color: ring, weight: 2, fillColor: o.alerta ? c2 : c1, fillOpacity: 1 })
-      .bindPopup(`<b>${esc(o._nome)}</b><br>${esc(o.situacao)}${o.prazo_vencido ? " · prazo vencido" : ""}<br>Previsto: ${o.previsto != null ? brl.format(o.previsto) : "–"}<br>Executado: ${pct(o.pct_fisico)}`)
-      .addTo(layer);
-  });
-  if (pts.length && !map._ajustado) { map.fitBounds(L.latLngBounds(pts.map(o => [o.lat, o.lon])).pad(0.08), { maxZoom: 13 }); map._ajustado = true; }
+  cluster.addLayers(pts.map(o => L.marker([o.lat, o.lon], { icon: pinIcon(o.alerta), alerta: o.alerta, title: o._nome, zIndexOffset: o.alerta ? 1000 : 0 })
+    .bindPopup(popupObra(o), { maxWidth: 300 })));
+  if (pts.length && !map._ajustado) { map.fitBounds(L.latLngBounds(pts.map(o => [o.lat, o.lon])).pad(0.05), { maxZoom: 14 }); map._ajustado = true; }
   $("map-sub").textContent = `${int.format(pts.length)} de ${int.format(view.length)} obras têm localização precisa. As demais usam um ponto genérico e ficam fora do mapa.`;
 }
 
@@ -990,8 +1085,7 @@ Promise.all([
   $("more").addEventListener("click", () => { shown += 40; renderTable(); });
   $("cmp-more").addEventListener("click", () => { cmpAll = true; renderComparison(); });
   let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { renderBars(); renderConvenios(); if (map) map.invalidateSize(); }, 150); });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => renderMap(true));
-  applyFilters();
+    applyFilters();
   setupConvenios(cv);
   renderConvenios();
 }).catch(err => { $("lede").textContent = "Erro ao carregar os dados: " + err.message; });
