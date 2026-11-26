@@ -12,6 +12,7 @@ permissions:
   contents: write            # para salvar os dados atualizados no repositório
   pages: write
   id-token: write
+  issues: write              # para abrir um aviso se a atualização falhar
 
 concurrency:
   group: pages
@@ -34,15 +35,25 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Instalar dependências e rodar os testes
+        if: github.event_name != 'push'
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+          python -m pytest -q
+
       - name: Coletar e processar dados
         if: github.event_name != 'push'
         run: |
-          pip install -r requirements.txt
           python scripts/coletar.py
           python scripts/processar.py
+          python scripts/registrar_historico.py
           python scripts/coletar_convenios.py
           python scripts/processar_convenios.py
           python scripts/gerar_site.py
+
+      - name: Validar dados antes de publicar
+        if: github.event_name != 'push'
+        run: python scripts/validar.py
 
       - name: Salvar dados atualizados no repositório
         if: github.event_name != 'push'
@@ -53,7 +64,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "Sem mudanças nos dados."
           else
-            git commit -m "Atualiza dados do Obrasgov ($(date -u +%Y-%m-%d))"
+            git commit -m "Atualiza dados do Obrasgov e do Portal da Transparência ($(date -u +%Y-%m-%d))"
+            git pull --rebase origin main
             git push
           fi
 
@@ -63,3 +75,12 @@ jobs:
           path: docs
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      - name: Abrir aviso se a atualização falhar
+        if: failure() && github.event_name != 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "${{ github.repository }}" \
+            --title "Falha na atualização automática ($(date -u +%Y-%m-%d))" \
+            --body "A atualização semanal falhou e o painel continua com a última versão publicada. Veja os detalhes em ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

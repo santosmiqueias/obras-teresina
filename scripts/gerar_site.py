@@ -1,5 +1,9 @@
 """
-Gera docs/data.json (dados do dashboard) a partir de data/obras_<ibge>.csv.
+Gera os dados do painel em docs/:
+  data.json       obras (a partir de data/obras_<ibge>.csv)
+  convenios.json  convênios e seus repasses (data/convenios_ e repasses_<ibge>.csv)
+  historico.json  evolução das obras e mudanças desde a última atualização
+                  (a partir das fotos em data/historico/)
 
 Uso:
   python scripts/gerar_site.py
@@ -34,6 +38,46 @@ def limpo(v):
     return v
 
 
+def num(v):
+    v = limpo(v)
+    return None if v is None else float(v)
+
+
+def serie_historica(fotos: list[tuple[str, pd.DataFrame]]) -> dict[str, list]:
+    """Para cada obra, os pontos [data, situação, % executado, pago] em que algo mudou."""
+    series: dict[str, list] = {}
+    for data, df in fotos:
+        for r in df.to_dict("records"):
+            ponto = [data, r["situacao"], num(r["pct_exec_fisica"]), num(r["valor_pago"])]
+            s = series.setdefault(r["id_projeto"], [])
+            if not s or s[-1][1:] != ponto[1:]:
+                s.append(ponto)
+    return series
+
+
+def mudancas(anterior: pd.DataFrame, atual: pd.DataFrame) -> list[dict]:
+    """Lista o que mudou em cada obra entre duas fotos."""
+    ant = anterior.set_index("id_projeto")
+    out = []
+    for r in atual.to_dict("records"):
+        oid = r["id_projeto"]
+        if oid not in ant.index:
+            out.append({"id": oid, "tipo": "nova", "para": r["situacao"]})
+            continue
+        a = ant.loc[oid]
+        if a["situacao"] != r["situacao"]:
+            out.append({"id": oid, "tipo": "situacao", "de": a["situacao"], "para": r["situacao"]})
+        pa, pr = num(a["pct_exec_fisica"]), num(r["pct_exec_fisica"])
+        if pr is not None and (pa is None or abs(pr - pa) >= 1):
+            out.append({"id": oid, "tipo": "execucao", "de": pa, "para": pr})
+        va, vr = num(a["valor_pago"]) or 0, num(r["valor_pago"]) or 0
+        if vr - va >= 1:
+            out.append({"id": oid, "tipo": "pagamento", "de": va, "para": vr})
+        if bool(a["prazo_vencido"]) != bool(r["prazo_vencido"]) and r["situacao"] == "Em execução":
+            out.append({"id": oid, "tipo": "prazo_vencido" if r["prazo_vencido"] else "prazo_regularizado"})
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ibge", type=int, default=2211001)
@@ -51,10 +95,16 @@ def main() -> None:
     convenios, conv_por_obra = [], {}
     if conv_csv.exists():
         cv = pd.read_csv(conv_csv, dtype={"numero": str, "numero_original": str})
+        rep_csv = Path(args.dados) / f"repasses_{args.ibge}.csv"
+        repasses = {}
+        if rep_csv.exists():
+            for r in pd.read_csv(rep_csv, dtype={"numero": str}).itertuples():
+                repasses.setdefault(r.numero, []).append([r.data, round(float(r.valor), 2)])
         for r in cv.to_dict("records"):
             c = {k: limpo(v) for k, v in r.items()}
             c["obras_relacionadas"] = [o for o in (c["obras_relacionadas"] or "").split("; ") if o]
             c["vencido_incompleto"] = bool(c["vigencia_vencida"] and (c["pct_repassado"] or 0) < 99)
+            c["repasses"] = repasses.get(c["numero"], [])
             for oid in c["obras_relacionadas"]:
                 conv_por_obra.setdefault(oid, []).append(
                     {"numero": c["numero"], "acordado": c["valor_acordado"], "repassado": c["valor_repassado"]})
@@ -100,6 +150,19 @@ def main() -> None:
         "obras": obras,
     }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{len(obras)} obras -> {saida} ({saida.stat().st_size // 1024} KB)")
+
+    # histórico semanal das obras
+    arquivos = sorted((Path(args.dados) / "historico").glob("obras_*.csv"))
+    fotos = [(a.stem.removeprefix("obras_"), pd.read_csv(a)) for a in arquivos]
+    hist = {"datas": [d for d, _ in fotos], "series": {}, "mudancas": [], "comparado_com": None}
+    if fotos:
+        hist["series"] = {k: v for k, v in serie_historica(fotos).items() if len(v) > 1}
+    if len(fotos) >= 2:
+        hist["comparado_com"] = fotos[-2][0]
+        hist["mudancas"] = mudancas(fotos[-2][1], fotos[-1][1])
+    destino = saida.with_name("historico.json")
+    destino.write_text(json.dumps(hist, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"histórico: {len(fotos)} fotos, {len(hist['mudancas'])} mudanças -> {destino}")
 
 
 if __name__ == "__main__":

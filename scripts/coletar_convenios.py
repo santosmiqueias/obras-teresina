@@ -9,7 +9,8 @@ Uso:
   python scripts/coletar_convenios.py                  # Teresina (PI)
   python scripts/coletar_convenios.py --uf PI --municipio TERESINA
 
-Saída: data/convenios_raw_<municipio>.csv (UTF-8, todas as colunas originais)
+Saída: data/convenios_raw_<municipio>.csv     (convênios, colunas originais)
+       data/convenios_ob_raw_<municipio>.csv  (ordens bancárias = cada repasse)
 """
 
 from __future__ import annotations
@@ -75,12 +76,22 @@ def main() -> None:
         with z.open(nome) as f:
             for bloco in pd.read_csv(io.TextIOWrapper(f, encoding="latin1"), sep=";", dtype=str, chunksize=100_000):
                 partes.append(bloco[(bloco["UF"] == args.uf) & (bloco["NOME MUNICÍPIO"] == args.municipio)])
-    df = pd.concat(partes, ignore_index=True)
+        df = pd.concat(partes, ignore_index=True)
+
+        # Ordens bancárias: cada repasse feito, com data e valor
+        numeros = set(df["NÚMERO CONVÊNIO"])
+        nome_ob = next(n for n in z.namelist() if n.endswith("_OrdensBancarias.csv"))
+        partes = []
+        with z.open(nome_ob) as f:
+            for bloco in pd.read_csv(io.TextIOWrapper(f, encoding="latin1"), sep=";", dtype=str, chunksize=200_000):
+                partes.append(bloco[bloco["NÚMERO CONVÊNIO"].isin(numeros)])
+        ob = pd.concat(partes, ignore_index=True)
 
     saida = Path(args.saida)
     saida.mkdir(parents=True, exist_ok=True)
     slug = args.municipio.lower().replace(" ", "_")
     df.to_csv(saida / f"convenios_raw_{slug}.csv", index=False, encoding="utf-8")
+    ob.to_csv(saida / f"convenios_ob_raw_{slug}.csv", index=False, encoding="utf-8")
     (saida / "metadados_convenios.json").write_text(json.dumps({
         "fonte": PAGINA,
         "arquivo": data_arquivo,
@@ -88,6 +99,7 @@ def main() -> None:
         "municipio": args.municipio,
         "coletado_em": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "convenios": len(df),
+        "ordens_bancarias": len(ob),
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"{len(df)} convênios de {args.municipio}/{args.uf} -> {saida}/convenios_raw_{slug}.csv")
 

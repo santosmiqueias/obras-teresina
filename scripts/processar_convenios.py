@@ -3,12 +3,13 @@ Limpa os convênios do município e liga cada um às obras do Obrasgov quando o
 número do convênio aparece no cadastro da obra.
 
 Entrada: data/convenios_raw_teresina.csv e data/raw/<ibge>/*.json
-Saída:   data/convenios_<ibge>.csv
+Saída:   data/convenios_<ibge>.csv e data/repasses_<ibge>.csv (cada repasse)
 
 Escopo e definições:
   - só convênios com fim de vigência a partir de 2015;
-  - convênios com o Governo do Estado ficam de fora: eles aparecem em Teresina
-    só porque a sede do governo fica na capital, mas valem para o Piauí todo;
+  - convênios com o Governo do Estado e outros órgãos estaduais ficam de fora:
+    eles aparecem em Teresina só porque a sede fica na capital, mas valem para
+    o Piauí todo;
   - valor_acordado = VALOR CONVÊNIO; valor_repassado = VALOR LIBERADO
     (o quanto a União já transferiu ao convenente);
   - sem_repasse: convênio em andamento que ainda não recebeu nenhum repasse;
@@ -41,6 +42,13 @@ RECEBEDORES = {
     "Entidades Empresariais Privadas": "Empresas",
 }
 RE_NUM = re.compile(r"(?<![\d.,])(\d{6})(?![\d.,])")
+
+
+RE_ESTADUAL = re.compile(r"ESTADO D[OE]|ESTADUAL|SECRETARIA DE ESTADO|GOVERNO DO ESTADO", re.IGNORECASE)
+
+
+def e_orgao_estadual(tipo: str, nome: str) -> bool:
+    return tipo == "Administração Pública" and bool(RE_ESTADUAL.search(nome or ""))
 
 
 def numero(s: pd.Series) -> pd.Series:
@@ -80,6 +88,9 @@ def main() -> None:
     dados = Path(args.dados)
     df = pd.read_csv(dados / f"convenios_raw_{args.municipio}.csv", dtype=str)
     df = df[df["TIPO CONVENENTE"].isin(RECEBEDORES)]
+    # órgãos públicos estaduais classificados só como "Administração Pública"
+    # (ex.: Fundo de Saúde do Estado do Piauí) também valem para o estado todo
+    df = df[~df.apply(lambda r: e_orgao_estadual(r["TIPO CONVENENTE"], r["NOME CONVENENTE"]), axis=1)]
     fim = pd.to_datetime(df["DATA FINAL VIGÊNCIA"], format="%d/%m/%Y", errors="coerce")
     df = df[fim >= "2015-01-01"].copy()
 
@@ -114,6 +125,20 @@ def main() -> None:
     out = out.sort_values("valor_acordado", ascending=False)
     destino = dados / f"convenios_{args.ibge}.csv"
     out.to_csv(destino, index=False, encoding="utf-8-sig")
+
+    # repasses individuais (ordens bancárias) dos convênios no escopo
+    ob_csv = dados / f"convenios_ob_raw_{args.municipio}.csv"
+    if ob_csv.exists():
+        ob = pd.read_csv(ob_csv, dtype=str)
+        ob = ob[ob["NÚMERO CONVÊNIO"].isin(set(out.numero))]
+        rep = pd.DataFrame({
+            "numero": ob["NÚMERO CONVÊNIO"],
+            "data": data_iso(ob["DATA EMISSÃO OB"]),
+            "valor": numero(ob["VALOR LIBERADO"]),
+            "ordem_bancaria": ob["NÚMERO DA ORDEM BANCÁRIA"],
+        }).dropna(subset=["data"]).sort_values(["data", "numero"])
+        rep.to_csv(dados / f"repasses_{args.ibge}.csv", index=False, encoding="utf-8-sig")
+        print(f"{len(rep)} repasses (ordens bancárias) -> {dados}/repasses_{args.ibge}.csv")
 
     validos = out[out.grupo_situacao != "Cancelado ou anulado"]
     pref = validos[validos.recebedor == "Prefeitura de Teresina"]

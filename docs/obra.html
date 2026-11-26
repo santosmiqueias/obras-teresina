@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obra · Obras Federais em Teresina</title>
+<meta name="description" content="Situação, execução física, pagamentos e repasses de uma obra com recursos federais em Teresina (PI).">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Obras federais em Teresina">
+<meta property="og:description" content="Situação, execução física, pagamentos e repasses de uma obra com recursos federais em Teresina (PI).">
+<meta property="og:image" content="https://santosmiqueias.github.io/obras-teresina/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b64be'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1' fill='%23fff'/%3E%3Crect x='14' y='11' width='4' height='14' rx='1' fill='%23fff'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1' fill='%23f47230'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="assets/estilo.css">
+</head>
+<body>
+<header class="hero hero-sm">
+  <div class="wrap">
+    <div class="topbar">
+      <a class="brand" href="./">
+        <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1b64be"/><rect x="7" y="17" width="4" height="8" rx="1" fill="#fff"/><rect x="14" y="11" width="4" height="14" rx="1" fill="#fff"/><rect x="21" y="7" width="4" height="18" rx="1" fill="#f47230"/></svg>
+        Obras em Teresina
+      </a>
+      <div class="top-actions">
+        <button class="icon-btn" id="compartilhar" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+          <span class="lbl" id="compartilhar-lbl">Compartilhar</span>
+        </button>
+        <button class="icon-btn" id="theme" type="button" aria-label="Alternar tema claro/escuro">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        </button>
+      </div>
+    </div>
+    <a class="voltar" href="./#obras">← Voltar ao painel</a>
+    <div id="o-pills" class="o-pills"></div>
+    <h1 id="o-nome">Carregando…</h1>
+    <p class="lede" id="o-org"></p>
+  </div>
+</header>
+
+<main class="wrap" id="conteudo">
+  <section aria-label="Resumo">
+    <div class="grid tiles" id="o-tiles"></div>
+  </section>
+
+  <div class="grid two o-cols">
+    <div class="o-col">
+      <section class="card" id="o-cmp">
+        <h3>O dinheiro acompanha a obra?</h3>
+        <p class="sub" id="o-cmp-sub"></p>
+        <div id="o-cmp-bars"></div>
+      </section>
+      <section class="card" id="o-tempo">
+        <h3>Linha do tempo</h3>
+        <p class="sub" id="o-tempo-sub"></p>
+        <ol class="timeline" id="o-timeline"></ol>
+      </section>
+      <section class="card" id="o-conv" hidden>
+        <h3>Convênio e repasses</h3>
+        <p class="sub">Quanto a União já transferiu pelo convênio ligado a esta obra (Portal da Transparência).</p>
+        <div id="o-conv-body"></div>
+      </section>
+    </div>
+    <div class="o-col">
+      <section class="card">
+        <h3>Localização</h3>
+        <p class="sub" id="o-map-sub"></p>
+        <div id="o-map" class="o-map" hidden></div>
+        <p class="map-hint" id="o-gmaps"></p>
+      </section>
+      <section class="card">
+        <h3>Dados do cadastro</h3>
+        <p class="sub">Como a obra aparece no Obrasgov.br.</p>
+        <dl class="kv-list" id="o-dados"></dl>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Projeto de <a href="https://github.com/santosmiqueias">santosmiqueias</a> · código aberto no <a href="https://github.com/santosmiqueias/obras-teresina">GitHub</a></span>
+    <span id="foot-meta"></span>
+  </div>
+</footer>
+<div id="tip" role="tooltip"></div>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="assets/comum.js"></script>
+<script src="assets/obra.js"></script>
+</body>
+</html>

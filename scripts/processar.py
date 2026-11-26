@@ -37,7 +37,11 @@ def cidade_citada(nome: str) -> str | None:
     if "municípios" in (nome or "").lower() or "municipios" in (nome or "").lower():
         return "vários municípios"
     for m in RE_CIDADE.finditer(nome or ""):
-        cidade = m.group(1).strip()
+        trecho = m.group(1).strip()
+        if "teresina" in trecho.lower():  # "vias de Teresina", "Município de Teresina"
+            continue
+        # "sistema de esgotamento em Floriano" -> "Floriano" (sem quebrar "Prata do Piauí")
+        cidade = re.split(r"\s+em\s+", trecho)[-1]
         if cidade.lower() not in {"teresina", "estado do piauí", "piauí", "piaui"}:
             return cidade
     return None

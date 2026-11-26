@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .venv/
 data/convenios_raw_*.csv
+data/convenios_ob_raw_*.csv
