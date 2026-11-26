@@ -180,3 +180,7 @@ próprias em vez de removidos:
 - [x] Testes automatizados e validação antes de publicar
 - [ ] Ligar mais obras a convênios (comparação por semelhança de texto)
 - [ ] Expandir para outros municípios do Piauí
+
+## Licença
+
+Código sob a licença [MIT](LICENSE).
