@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obras Federais em Teresina</title>
+<meta name="description" content="Painel de obras com recursos federais em Teresina (PI): situação, execução física e quanto já foi pago. Dados abertos do Obrasgov.br.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f6f4;
+  --surface-1: #ffffff;
+  --border: #e3e3e0;
+  --grid: #ececea;
+  --text-primary: #191919;
+  --text-secondary: #666666;
+  --accent: #1b64be;
+  --series-1: #257de0;
+  --series-2: #f47230;
+  --critical: #dc3c3d;
+  --warning-ink: #8a5a00;
+  --chip: #f0f0ee;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111111;
+    --surface-1: #191919;
+    --border: #2e2e2e;
+    --grid: #2a2a2a;
+    --text-primary: #efefef;
+    --text-secondary: #9c9c9c;
+    --accent: #6aabf1;
+    --series-1: #338ced;
+    --series-2: #e76624;
+    --critical: #eb6263;
+    --warning-ink: #f2c25b;
+    --chip: #242424;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111111;
+  --surface-1: #191919;
+  --border: #2e2e2e;
+  --grid: #2a2a2a;
+  --text-primary: #efefef;
+  --text-secondary: #9c9c9c;
+  --accent: #6aabf1;
+  --series-1: #338ced;
+  --series-2: #e76624;
+  --critical: #eb6263;
+  --warning-ink: #f2c25b;
+  --chip: #242424;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text-primary);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+header { padding: 32px 0 8px; }
+h1 { font-size: clamp(24px, 4vw, 34px); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.01em; }
+.lede { color: var(--text-secondary); margin: 0; max-width: 760px; }
+.meta { color: var(--text-secondary); font-size: 13px; margin-top: 10px; }
+.meta a, a { color: var(--accent); }
+h2 { font-size: 17px; margin: 0 0 2px; }
+.sub { color: var(--text-secondary); font-size: 13px; margin: 0 0 14px; }
+
+.filters {
+  position: sticky; top: 0; z-index: 1000; background: var(--bg);
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 20px;
+}
+.filters select, .filters input[type=search] {
+  font: inherit; font-size: 14px; color: var(--text-primary); background: var(--surface-1);
+  border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; min-height: 36px;
+}
+.filters input[type=search] { flex: 1 1 200px; min-width: 0; }
+.filters select { flex: 0 1 220px; min-width: 0; }
+.check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+.grid { display: grid; gap: 16px; }
+.tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+.two { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 16px; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px; min-width: 0; }
+.tile .label { color: var(--text-secondary); font-size: 13px; }
+.tile .value { font-size: 28px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; margin-top: 4px; }
+.tile .note { color: var(--text-secondary); font-size: 12px; margin-top: 4px; }
+.tile.alert .value { color: var(--critical); }
+
+svg text { fill: var(--text-secondary); font-size: 12px; }
+svg .val { fill: var(--text-primary); font-weight: 600; }
+svg .gridline { stroke: var(--grid); stroke-width: 1; }
+svg .axis { stroke: var(--border); stroke-width: 1; }
+.chart { position: relative; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.fine { color: var(--text-secondary); font-size: 12px; margin: 10px 0 0; }
+
+#tip {
+  position: fixed; pointer-events: none; z-index: 2000; display: none; max-width: 300px;
+  background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+#tip b { display: block; margin-bottom: 2px; }
+#tip .muted { color: var(--text-secondary); }
+
+#map { height: 420px; border-radius: 8px; border: 1px solid var(--border); }
+.leaflet-popup-content { font: 13px/1.4 system-ui, sans-serif; }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tabs button {
+  font: inherit; font-size: 14px; border: 1px solid var(--border); background: var(--surface-1);
+  color: var(--text-secondary); border-radius: 999px; padding: 6px 14px; cursor: pointer;
+}
+.tabs button[aria-pressed=true] { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: 12px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
+th[aria-sort=ascending]::after { content: " ↑"; }
+th[aria-sort=descending]::after { content: " ↓"; }
+td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+tbody tr.row { cursor: pointer; }
+tbody tr.row:hover { background: var(--chip); }
+td.nome { min-width: 240px; max-width: 420px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--chip); white-space: nowrap; }
+.pill.bad { color: var(--critical); font-weight: 600; }
+.pill.warn { color: var(--warning-ink); font-weight: 600; }
+tr.detail td { background: var(--chip); font-size: 13px; color: var(--text-secondary); }
+tr.detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+tr.detail dt { font-weight: 600; color: var(--text-primary); }
+tr.detail dd { margin: 0; }
+.more { margin-top: 12px; font: inherit; font-size: 14px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+.empty { color: var(--text-secondary); padding: 24px 0; text-align: center; }
+
+.method { margin: 16px 0 40px; }
+.method ol { padding-left: 20px; margin: 8px 0 0; }
+.method li { margin-bottom: 6px; }
+footer { color: var(--text-secondary); font-size: 13px; padding: 0 0 40px; }
+
+@media (max-width: 860px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .tile .value { font-size: 22px; }
+  .filters select { flex: 1 1 100%; }
+  #map { height: 340px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Obras federais em Teresina</h1>
+    <p class="lede">Quais obras com dinheiro federal estão em andamento, paradas ou atrasadas na capital do Piauí, e quanto do valor já foi pago.</p>
+    <p class="meta" id="meta">Carregando dados…</p>
+  </header>
+
+  <div class="filters" role="search">
+    <input type="search" id="f-busca" placeholder="Buscar obra, órgão ou ID…" aria-label="Buscar">
+    <select id="f-situacao" aria-label="Situação"><option value="">Todas as situações</option></select>
+    <select id="f-repassador" aria-label="Órgão repassador"><option value="">Todos os repassadores</option></select>
+    <label class="check"><input type="checkbox" id="f-todas"> Incluir registros fora de Teresina</label>
+  </div>
+
+  <section class="grid tiles" aria-label="Resumo">
+    <div class="card tile"><div class="label">Projetos</div><div class="value" id="t-qtd">–</div><div class="note" id="t-qtd-n"></div></div>
+    <div class="card tile"><div class="label">Valor previsto</div><div class="value" id="t-prev">–</div><div class="note" id="t-prev-n"></div></div>
+    <div class="card tile"><div class="label">Valor pago</div><div class="value" id="t-pago">–</div><div class="note" id="t-pago-n"></div></div>
+    <div class="card tile alert"><div class="label">Com alerta</div><div class="value" id="t-alerta">–</div><div class="note">paralisadas, inacabadas ou com prazo vencido</div></div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>Projetos por situação</h2>
+      <p class="sub">Quantidade de projetos</p>
+      <div class="chart" id="c-qtd"></div>
+    </div>
+    <div class="card">
+      <h2>Valor previsto por situação</h2>
+      <p class="sub">Exclui projetos com valor simbólico (R$ 0,01)</p>
+      <div class="chart" id="c-valor"></div>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>Pago × executado</h2>
+      <p class="sub">Cada ponto é uma obra com dados de pagamento. Acima da diagonal, pagou-se proporcionalmente mais do que foi construído.</p>
+      <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
+      <div class="chart" id="c-scatter"></div>
+      <p class="fine" id="scatter-note"></p>
+    </div>
+    <div class="card">
+      <h2>Mapa</h2>
+      <p class="sub" id="map-sub">Obras com localização precisa</p>
+      <div class="legend"><span><i class="dot" style="background:var(--series-1)"></i>Sem alerta</span><span><i class="dot" style="background:var(--series-2)"></i>Com alerta</span></div>
+      <div id="map" role="region" aria-label="Mapa das obras"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Obras</h2>
+    <p class="sub">Clique em uma linha para ver detalhes. Clique no cabeçalho para ordenar.</p>
+    <div class="tabs" role="group" aria-label="Visão da tabela">
+      <button type="button" data-tab="alerta" aria-pressed="true">Com alerta</button>
+      <button type="button" data-tab="todas" aria-pressed="false">Todas</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th data-k="nome">Obra</th>
+          <th data-k="situacao">Situação</th>
+          <th data-k="previsto" class="num">Previsto</th>
+          <th data-k="pago" class="num">Pago</th>
+          <th data-k="pct_fisico" class="num">Executado</th>
+          <th data-k="dt_final_prevista">Prazo final</th>
+          <th data-k="repassador">Repassador</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty" hidden>Nenhuma obra com esses filtros.</div>
+    <button type="button" class="more" id="more" hidden>Mostrar mais</button>
+  </section>
+
+  <section class="card method" id="metodologia">
+    <h2>Metodologia e limitações</h2>
+    <p class="sub">Leia antes de tirar conclusões.</p>
+    <ol>
+      <li><b>Fonte:</b> <a href="https://api-publica.obrasgov.gestao.gov.br/obras/docs">API de Dados Abertos do Obrasgov.br</a> (Ministério da Gestão e da Inovação, licença ODbL). Os dados são informados pelos próprios órgãos gestores.</li>
+      <li><b>Localização pouco confiável:</b> a maioria dos projetos atribuídos a Teresina tem a mesma coordenada genérica, e muitos ficam em outras cidades do Piauí. Por padrão, o painel mostra só os que <i>provavelmente</i> ficam em Teresina, com base em uma heurística sobre o nome da obra. O mapa só mostra coordenadas precisas.</li>
+      <li><b>Valores simbólicos:</b> centenas de projetos têm valor previsto de R$ 0,01 e ficam fora das somas de valor previsto.</li>
+      <li><b>Pagamentos parciais:</b> só uma pequena parte dos projetos tem empenhos na API. Repasses por convênio (Transferegov) não aparecem aqui. <b>"Sem dado" não significa que nada foi pago.</b></li>
+      <li><b>Empenhado ≠ pago ≠ executado:</b> o valor pago soma pagamentos do exercício e restos a pagar pagos. A execução física é o avanço da obra declarado pelo gestor.</li>
+      <li><b>"Com alerta"</b> = situação Paralisada ou Inacabada, ou "Em execução" com a data final prevista vencida. Atraso e paralisação podem ter causas legítimas (licenciamento, decisão judicial, rescisão), então um alerta não indica irregularidade.</li>
+    </ol>
+  </section>
+
+  <footer>
+    Código e dados: <a href="https://github.com/santosmiqueias/obras-teresina">github.com/santosmiqueias/obras-teresina</a>
+  </footer>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const SITUACOES = ["Em execução", "Paralisada", "Inacabada", "Cadastrada", "Concluída", "Cancelada"];
+const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const brlC = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+const int = new Intl.NumberFormat("pt-BR");
+const pct = v => v == null ? "–" : `${int.format(Math.round(v))}%`;
+const dataBR = s => s ? s.slice(0, 10).split("-").reverse().join("/") : "–";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+
+let DATA = [], view = [], tab = "alerta", sortK = "previsto", sortDir = -1, shown = 50, map, layer;
+
+// ---------- tooltip ----------
+const tip = $("tip");
+function showTip(e, html) {
+  tip.innerHTML = html; tip.style.display = "block";
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = Math.max(8, x) + "px"; tip.style.top = Math.max(8, y) + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+
+// ---------- filters ----------
+function applyFilters() {
+  const q = $("f-busca").value.trim().toLowerCase();
+  const sit = $("f-situacao").value, rep = $("f-repassador").value, todas = $("f-todas").checked;
+  view = DATA.filter(o =>
+    (todas || o.em_teresina) &&
+    (!sit || o.situacao === sit) &&
+    (!rep || (o.repassador || "").split("; ").includes(rep)) &&
+    (!q || [o.nome, o.id_projeto, o.repassador, o.orgao_responsavel, o.executor].join(" ").toLowerCase().includes(q)));
+  shown = 50;
+  render();
+}
+
+// ---------- tiles ----------
+function renderTiles() {
+  const prev = view.filter(o => o.previsto != null);
+  const fin = view.filter(o => o.pago != null);
+  const sum = (a, k) => a.reduce((s, o) => s + (o[k] || 0), 0);
+  $("t-qtd").textContent = int.format(view.length);
+  $("t-qtd-n").textContent = `${int.format(view.filter(o => o.situacao === "Em execução").length)} em execução`;
+  $("t-prev").textContent = brlC.format(sum(prev, "previsto"));
+  $("t-prev-n").textContent = `soma de ${int.format(prev.length)} projetos com valor informado`;
+  $("t-pago").textContent = brlC.format(sum(fin, "pago"));
+  $("t-pago-n").textContent = fin.length
+    ? `de ${brlC.format(sum(fin, "empenhado"))} empenhados · só ${int.format(fin.length)} projetos têm esse dado`
+    : "nenhum projeto com dados de pagamento";
+  $("t-alerta").textContent = int.format(view.filter(o => o.alerta).length);
+}
+
+// ---------- horizontal bar chart ----------
+function barChart(el, rows, fmt, tipFmt) {
+  const W = Math.max(280, el.clientWidth), labelW = 96, valW = 72, rowH = 34, bar = 18, top = 4;
+  const H = top + rows.length * rowH;
+  const max = Math.max(1, ...rows.map(r => r.v));
+  const plotW = W - labelW - valW;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Gráfico de barras">`;
+  s += `<line class="axis" x1="${labelW}" x2="${labelW}" y1="0" y2="${H}"/>`;
+  rows.forEach((r, i) => {
+    const y = top + i * rowH + (rowH - bar) / 2, w = r.v > 0 ? Math.max(3, r.v / max * plotW) : 0, rad = Math.min(4, w);
+    s += `<text x="${labelW - 8}" y="${y + bar / 2 + 4}" text-anchor="end">${esc(r.k)}</text>`;
+    if (w) s += `<path fill="var(--series-1)" d="M${labelW},${y} h${w - rad} a${rad},${rad} 0 0 1 ${rad},${rad} v${bar - 2 * rad} a${rad},${rad} 0 0 1 -${rad},${rad} h-${w - rad} z"/>`;
+    s += `<text class="val" x="${labelW + w + 6}" y="${y + bar / 2 + 4}">${fmt(r.v)}</text>`;
+    s += `<rect data-i="${i}" x="0" y="${top + i * rowH}" width="${W}" height="${rowH}" fill="transparent"/>`;
+  });
+  el.innerHTML = s + "</svg>";
+  el.querySelectorAll("rect[data-i]").forEach(h => {
+    const r = rows[+h.dataset.i];
+    h.addEventListener("mousemove", e => showTip(e, `<b>${esc(r.k)}</b>${tipFmt(r)}`));
+    h.addEventListener("mouseleave", hideTip);
+  });
+}
+
+function renderBars() {
+  const by = SITUACOES.map(k => {
+    const a = view.filter(o => o.situacao === k);
+    return { k, n: a.length, v: 0, total: a.filter(o => o.previsto != null).reduce((s, o) => s + o.previsto, 0), nv: a.filter(o => o.previsto != null).length };
+  });
+  barChart($("c-qtd"), by.map(r => ({ ...r, v: r.n })), v => int.format(v),
+    r => `<span class="muted">${int.format(r.n)} projetos</span>`);
+  barChart($("c-valor"), by.map(r => ({ ...r, v: r.total })), v => v ? brlC.format(v) : "–",
+    r => `<span class="muted">${brl.format(r.total)}<br>${int.format(r.nv)} de ${int.format(r.n)} projetos com valor informado</span>`);
+}
+
+// ---------- scatter ----------
+function renderScatter() {
+  const el = $("c-scatter");
+  const pts = view.filter(o => o.pct_pago != null && o.pct_fisico != null);
+  const W = Math.max(280, el.clientWidth), H = 300, m = { l: 68, r: 22, t: 12, b: 36 }, YMAX = 200;
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const x = v => m.l + v / 100 * pw, y = v => m.t + ph - Math.min(v, YMAX) / YMAX * ph;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Dispersão entre percentual pago e percentual executado">`;
+  [0, 50, 100, 150, 200].forEach(t => s += `<line class="gridline" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${t}%${t === YMAX ? "+" : ""}</text>`);
+  [0, 25, 50, 75, 100].forEach(t => s += `<text x="${x(t)}" y="${H - m.b + 16}" text-anchor="middle">${t}%</text>`);
+  s += `<text x="${m.l + pw / 2}" y="${H - 4}" text-anchor="middle">execução física</text>`;
+  s += `<text transform="translate(12 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle">% do previsto já pago</text>`;
+  s += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(100)}" y2="${y(100)}" stroke="var(--text-secondary)" stroke-width="1" stroke-dasharray="0" opacity=".5"/>`;
+  s += `<text x="${x(100) - 4}" y="${y(100) - 6}" text-anchor="end">pago = executado</text>`;
+  const ord = [...pts].sort((a, b) => a.alerta - b.alerta);
+  ord.forEach((o, i) => {
+    const cx = x(o.pct_fisico), cy = y(o.pct_pago);
+    s += `<circle cx="${cx}" cy="${cy}" r="5" fill="var(${o.alerta ? "--series-2" : "--series-1"})" stroke="var(--surface-1)" stroke-width="2"/>`;
+    s += `<circle data-i="${i}" cx="${cx}" cy="${cy}" r="11" fill="transparent"/>`;
+  });
+  if (!pts.length) s += `<text x="${m.l + pw / 2}" y="${m.t + ph / 2}" text-anchor="middle">Nenhuma obra com dados de pagamento nesse filtro</text>`;
+  el.innerHTML = s + "</svg>";
+  el.querySelectorAll("circle[data-i]").forEach(h => {
+    const o = ord[+h.dataset.i];
+    h.addEventListener("mousemove", e => showTip(e, `<b>${esc(o.nome)}</b><span class="muted">${esc(o.situacao)}${o.prazo_vencido ? " · prazo vencido" : ""}<br>Pago: ${brl.format(o.pago)} de ${brl.format(o.previsto)} (${pct(o.pct_pago)})<br>Execução física: ${pct(o.pct_fisico)}</span>`));
+    h.addEventListener("mouseleave", hideTip);
+  });
+  const acima = pts.filter(o => o.pct_pago > YMAX).length;
+  $("scatter-note").textContent = `${int.format(pts.length)} obras com pagamento e execução física informados.` +
+    (acima ? ` ${int.format(acima)} passam de ${YMAX}% e aparecem no topo, provavelmente por valor previsto subdeclarado. Passe o mouse para ver o valor real.` : "");
+}
+
+// ---------- map ----------
+function renderMap() {
+  if (!window.L) { $("map").innerHTML = '<p class="empty">Não foi possível carregar o mapa.</p>'; return; }
+  if (!map) {
+    map = L.map("map", { scrollWheelZoom: false }).setView([-5.09, -42.80], 11);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    layer = L.layerGroup().addTo(map);
+  }
+  layer.clearLayers();
+  const pts = view.filter(o => o.lat != null);
+  const c1 = css("--series-1"), c2 = css("--series-2"), ring = css("--surface-1");
+  [...pts].sort((a, b) => a.alerta - b.alerta).forEach(o => {
+    L.circleMarker([o.lat, o.lon], { radius: 6, color: ring, weight: 2, fillColor: o.alerta ? c2 : c1, fillOpacity: 1 })
+      .bindPopup(`<b>${esc(o.nome)}</b><br>${esc(o.situacao)}${o.prazo_vencido ? " · prazo vencido" : ""}<br>Previsto: ${o.previsto != null ? brl.format(o.previsto) : "–"}<br>Executado: ${pct(o.pct_fisico)}`)
+      .addTo(layer);
+  });
+  $("map-sub").textContent = `${int.format(pts.length)} de ${int.format(view.length)} obras têm localização precisa. As demais usam um ponto genérico e não aparecem.`;
+}
+
+// ---------- table ----------
+function situacaoPill(o) {
+  if (o.situacao === "Paralisada" || o.situacao === "Inacabada") return `<span class="pill bad">⛔ ${esc(o.situacao)}</span>`;
+  if (o.prazo_vencido) return `<span class="pill warn">⚠ Prazo vencido</span>`;
+  return `<span class="pill">${esc(o.situacao)}</span>`;
+}
+function renderTable() {
+  let rows = tab === "alerta" ? view.filter(o => o.alerta) : view;
+  rows = [...rows].sort((a, b) => {
+    const va = a[sortK], vb = b[sortK];
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    return (typeof va === "number" ? va - vb : String(va).localeCompare(String(vb), "pt-BR")) * sortDir;
+  });
+  document.querySelectorAll("th[data-k]").forEach(th =>
+    th.setAttribute("aria-sort", th.dataset.k === sortK ? (sortDir > 0 ? "ascending" : "descending") : "none"));
+  $("tbody").innerHTML = rows.slice(0, shown).map((o, i) => `
+    <tr class="row" data-i="${i}" tabindex="0">
+      <td class="nome">${esc(o.nome)}</td>
+      <td>${situacaoPill(o)}</td>
+      <td class="num">${o.previsto != null ? brlC.format(o.previsto) : "–"}</td>
+      <td class="num">${o.pago != null ? brlC.format(o.pago) : '<span title="Sem dados de pagamento na API">sem dado</span>'}</td>
+      <td class="num">${pct(o.pct_fisico)}</td>
+      <td>${dataBR(o.dt_final_prevista)}</td>
+      <td>${esc(o.repassador || "–")}</td>
+    </tr>`).join("");
+  $("empty").hidden = rows.length > 0;
+  $("more").hidden = rows.length <= shown;
+  $("more").textContent = `Mostrar mais (${int.format(rows.length - shown)} restantes)`;
+  $("tbody").querySelectorAll("tr.row").forEach(tr => {
+    const toggle = () => {
+      const next = tr.nextElementSibling;
+      if (next && next.classList.contains("detail")) { next.remove(); return; }
+      const o = rows[+tr.dataset.i];
+      const d = [
+        ["ID", o.id_projeto], ["Natureza", o.natureza], ["Tipo", o.tipo],
+        ["Órgão responsável", o.orgao_responsavel], ["Executor", o.executor],
+        ["Empenhado", o.empenhado != null ? brl.format(o.empenhado) : null],
+        ["Pago", o.pago != null ? `${brl.format(o.pago)} (${pct(o.pct_pago)} do previsto)` : null],
+        ["Paralisada/cancelada em", o.data_paralisacao_cancelamento ? dataBR(o.data_paralisacao_cancelamento) : null],
+        ["Justificativa", o.justificativa],
+        ["Atenção", o.outro_municipio ? `o nome cita outro local (${o.outro_municipio})` : (!o.em_teresina ? "projeto de abrangência estadual ou nacional" : null)],
+      ].filter(([, v]) => v);
+      tr.insertAdjacentHTML("afterend", `<tr class="detail"><td colspan="7"><dl>${d.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl></td></tr>`);
+    };
+    tr.addEventListener("click", toggle);
+    tr.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+  });
+}
+
+function render() { renderTiles(); renderBars(); renderScatter(); renderMap(); renderTable(); }
+
+// ---------- boot ----------
+fetch("data.json").then(r => r.json()).then(d => {
+  DATA = d.obras;
+  $("meta").innerHTML = `Fonte: <a href="https://api-publica.obrasgov.gestao.gov.br/obras/docs">Obrasgov.br</a> · base atualizada em ${dataBR(d.data_atualizacao_base)} · <a href="#metodologia">metodologia e limitações</a>`;
+  SITUACOES.forEach(s => $("f-situacao").insertAdjacentHTML("beforeend", `<option>${s}</option>`));
+  const reps = [...new Set(DATA.flatMap(o => (o.repassador || "").split("; ").filter(Boolean)))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  reps.forEach(r => $("f-repassador").insertAdjacentHTML("beforeend", `<option>${esc(r)}</option>`));
+  ["f-situacao", "f-repassador", "f-todas"].forEach(id => $(id).addEventListener("change", applyFilters));
+  let t; $("f-busca").addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilters, 200); });
+  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+    tab = b.dataset.tab; shown = 50;
+    document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    renderTable();
+  }));
+  document.querySelectorAll("th[data-k]").forEach(th => th.addEventListener("click", () => {
+    if (sortK === th.dataset.k) sortDir *= -1; else { sortK = th.dataset.k; sortDir = ["previsto", "pago", "pct_fisico"].includes(sortK) ? -1 : 1; }
+    renderTable();
+  }));
+  $("more").addEventListener("click", () => { shown += 50; renderTable(); });
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { renderBars(); renderScatter(); }, 150); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderMap);
+  applyFilters();
+}).catch(err => { $("meta").textContent = "Erro ao carregar os dados: " + err.message; });
+</script>
+</body>
+</html>

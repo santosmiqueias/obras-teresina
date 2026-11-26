@@ -4,13 +4,25 @@ Coleta e organiza dados públicos sobre obras com recursos federais em Teresina 
 situação (concluída, em execução, paralisada...), execução física e quanto do valor
 já foi empenhado e pago.
 
+**Painel:** https://santosmiqueias.github.io/obras-teresina/
+
+O painel tem filtros por situação, órgão repassador e busca; indicadores-resumo;
+gráficos por situação; dispersão "% pago × % executado"; mapa das obras com
+localização precisa; e tabela das obras com alerta (paralisadas, inacabadas ou
+com prazo vencido).
+
 ## Como rodar
 
 ```bash
 pip install -r requirements.txt
 python coletar.py      # baixa os dados da API (~10 min na 1ª vez; depois usa cache)
 python processar.py    # gera data/obras_2211001.csv
+python gerar_site.py   # gera docs/data.json (dados do painel)
+python -m http.server -d docs 8000   # abra http://localhost:8000
 ```
+
+O painel (`docs/`) é HTML/CSS/JS puro, sem etapa de build, publicado pelo
+GitHub Pages a partir da pasta `docs/` da branch `main`.
 
 Para outro município, passe o código IBGE: `python coletar.py --ibge 2211001`.
 
@@ -73,5 +85,5 @@ próprias em vez de removidos:
 
 - [ ] Cruzar com convênios do Portal da Transparência para cobrir os repasses
 - [ ] Geocodificar pelo endereço/CEP para corrigir o ponto genérico
-- [ ] Dashboard com mapa, filtros e indicador "% pago × situação"
+- [x] Dashboard com mapa, filtros e indicador "% pago × executado"
 - [ ] Atualização automática agendada (GitHub Actions)
